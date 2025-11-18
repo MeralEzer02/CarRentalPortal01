@@ -10,6 +10,6 @@
         public decimal DailyRentalRate { get; set; }
         public bool IsAvailable { get; set; } = true;
         public string Description { get; set; }
-        public string ImageUrl { get; set; }
+        public string ImageUrl { get; set; } 
     }
 }
