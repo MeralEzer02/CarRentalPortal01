@@ -1,10 +1,12 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CarRentalPortal01.Models
 {
     public class Rental
     {
+        [Key]
         public int Id { get; set; }
 
         //Kiralama
@@ -14,7 +16,6 @@ namespace CarRentalPortal01.Models
         public string CustomerName { get; set; }
         public string CustomerEmail { get; set; }
         public string CustomerPhone { get; set; }
-
         public int VehicleId { get; set; }
 
         [ForeignKey("VehicleId")]

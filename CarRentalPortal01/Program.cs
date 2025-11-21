@@ -1,4 +1,12 @@
+using CarRentalPortal01.Data;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
+
+var connectionString = builder.Configuration.GetConnectionString("CarRentalDbContext") ?? throw new InvalidOperationException("Connection string 'CarRentalDbContext' not found.");
+
+builder.Services.AddDbContext<CarRentalDbContext>(options =>
+    options.UseSqlServer(connectionString));
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
