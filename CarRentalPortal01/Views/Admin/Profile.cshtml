@@ -1,0 +1,62 @@
+﻿@model CarRentalPortal01.Models.User
+
+@{
+    ViewData["Title"] = "Profilim";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h1 class="h3 mb-4 text-gray-800">Profil Bilgileri</h1>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Kullanıcı Detayları</h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <img class="img-profile rounded-circle" src="~/Admin/img/undraw_profile.svg" style="width: 150px; height: 150px;">
+                </div>
+
+                <form>
+                    <div class="form-group row">
+                        <label class="col-sm-3 col-form-label font-weight-bold">Email:</label>
+                        <div class="col-sm-9">
+                            <input type="text" readonly class="form-control-plaintext" value="@Model.Email">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-3 col-form-label font-weight-bold">Rol:</label>
+                        <div class="col-sm-9">
+                            @if (Model.Role == 1)
+                            {
+                                <span class="badge badge-primary px-3 py-2">Yönetici (Admin)</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-secondary px-3 py-2">Kullanıcı</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-3 col-form-label font-weight-bold">Şifre:</label>
+                        <div class="col-sm-9">
+                            <input type="password" readonly class="form-control-plaintext" value="@Model.PasswordHash">
+                            <small class="text-muted">(Güvenlik nedeniyle gizli)</small>
+                        </div>
+                    </div>
+                </form>
+
+                <hr>
+                <div class="text-center">
+                    <a href="#" class="btn btn-warning btn-icon-split disabled">
+                        <span class="icon text-white-50">
+                            <i class="fas fa-key"></i>
+                        </span>
+                        <span class="text">Şifre Değiştir (Yakında)</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

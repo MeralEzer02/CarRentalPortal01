@@ -2,20 +2,44 @@
 using CarRentalPortal01.Repositories;
 using CarRentalPortal01.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using NToastNotify;
 
 namespace CarRentalPortal01.Controllers
 {
+    [Authorize(Roles = "1")]
     public class AdminController : Controller
     {
         private readonly IGenericRepository<Vehicle> _vehicleRepository;
-        public AdminController(IGenericRepository<Vehicle> vehicleRepository)
+        private readonly IGenericRepository<Rental> _rentalRepository;
+        private readonly IGenericRepository<User> _userRepository;
+        private readonly IToastNotification _toastNotification;
+        public AdminController(IGenericRepository<Vehicle> vehicleRepository,
+                               IGenericRepository<Rental> rentalRepository,
+                               IGenericRepository<User> userRepository,
+                               IToastNotification toastNotification)
         {
             _vehicleRepository = vehicleRepository;
+            _rentalRepository = rentalRepository;
+            _userRepository = userRepository;
+            _toastNotification = toastNotification;
         }
 
         public IActionResult Index()
         {
             return View();
+        }
+        public IActionResult Profile()
+        {
+            var userEmail = User.Identity?.Name;
+
+            if (string.IsNullOrEmpty(userEmail))
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+            var user = _userRepository.Find(x => x.Email == userEmail).FirstOrDefault();
+
+            return View(user);
         }
 
         public IActionResult VehicleList()
@@ -24,10 +48,16 @@ namespace CarRentalPortal01.Controllers
             return View(vehicles);
         }
 
+        public IActionResult RentalList()
+        {
+            var rentals = _rentalRepository.GetAll();
+            return View(rentals);
+        }
+
         [HttpGet]
         public IActionResult Upsert(int? id)
         {
-            VehicleUpsertViewModel vm = new VehicleUpsertViewModel
+            CarRentalPortal01.ViewModels.VehicleUpsertViewModel vm = new CarRentalPortal01.ViewModels.VehicleUpsertViewModel
             {
                 Vehicle = new Vehicle()
             };
@@ -39,7 +69,6 @@ namespace CarRentalPortal01.Controllers
             else
             {
                 vm.Vehicle = _vehicleRepository.GetById(id.Value);
-
                 if (vm.Vehicle == null)
                 {
                     return NotFound();
@@ -50,22 +79,26 @@ namespace CarRentalPortal01.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Upsert(VehicleUpsertViewModel vm)
+        public IActionResult Upsert(CarRentalPortal01.ViewModels.VehicleUpsertViewModel vm)
         {
             if (ModelState.IsValid)
             {
                 if (vm.Vehicle.Id == 0)
                 {
                     _vehicleRepository.Add(vm.Vehicle);
+                    _toastNotification.AddSuccessToastMessage("Araç başarıyla eklendi.");
                 }
                 else
                 {
                     _vehicleRepository.Update(vm.Vehicle);
+                    _toastNotification.AddSuccessToastMessage("Araç bilgileri güncellendi.");
                 }
 
                 _vehicleRepository.Save();
                 return RedirectToAction("VehicleList");
             }
+
+            _toastNotification.AddErrorToastMessage("Bir hata oluştu. Lütfen bilgileri kontrol edin.");
             return View(vm);
         }
 
@@ -76,6 +109,7 @@ namespace CarRentalPortal01.Controllers
             {
                 _vehicleRepository.Remove(vehicle);
                 _vehicleRepository.Save();
+                _toastNotification.AddWarningToastMessage("Araç başarıyla silindi.");
             }
             return RedirectToAction("VehicleList");
         }

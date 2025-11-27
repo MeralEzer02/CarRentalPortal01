@@ -1,0 +1,51 @@
+﻿@model IEnumerable<CarRentalPortal01.Models.Rental>
+
+@{
+    ViewData["Title"] = "Kiralama İşlemleri";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h1 class="h3 mb-2 text-gray-800">Kiralama İşlemleri</h1>
+<p class="mb-4">Araç kiralama geçmişini ve aktif kiralamaları buradan takip edebilirsiniz.</p>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Kiralama Listesi</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>#ID</th>
+                        <th>Müşteri Adı</th>
+                        <th>İletişim (Email/Tel)</th>
+                        <th>Araç ID</th>
+                        <th>Başlangıç</th>
+                        <th>Bitiş</th>
+                        <th>Tutar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.Id</td>
+                            <td>@item.CustomerName</td>
+                            <td>
+                                <div><small>@item.CustomerEmail</small></div>
+                                <div><small>@item.CustomerPhone</small></div>
+                            </td>
+                            <td>
+                                <span class="badge badge-info">Araç ID: @item.VehicleId</span>
+                            </td>
+                            <td>@item.StartDate.ToShortDateString()</td>
+                            <td>@item.EndDate.ToShortDateString()</td>
+                            <td class="text-success font-weight-bold">@item.TotalPrice.ToString("C2")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
