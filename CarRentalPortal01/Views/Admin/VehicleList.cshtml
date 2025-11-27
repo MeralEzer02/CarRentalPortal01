@@ -1,0 +1,98 @@
+﻿@model IEnumerable<CarRentalPortal01.Models.Vehicle>
+
+@{
+    ViewData["Title"] = "Araç Listesi";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h1 class="h3 mb-2 text-gray-800">Araç Listesi</h1>
+<p class="mb-4">Sistemde kayıtlı olan tüm araçları buradan görüntüleyebilir ve yönetebilirsiniz.</p>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Kayıtlı Araçlar</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Resim</th>
+                        <th>Marka</th>
+                        <th>Model</th>
+                        <th>Yıl</th>
+                        <th>Plaka</th>
+                        <th>Günlük Ücret</th>
+                        <th>Durum</th>
+                        <th>Açıklama</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>
+                                <img src="/@item.ImageUrl" width="200" height="110" style="object-fit:cover; border-radius:5px;" alt="Araç Resmi" />
+                            </td>
+                            <td>@item.Brand</td>
+                            <td>@item.Model</td>
+                            <td>@item.Year</td>
+                            <td><span class="badge badge-secondary">@item.LicensePlate</span></td>
+                            <td>@item.DailyRentalRate.ToString("C2")</td>
+                            <td>
+                                <span id="status-@item.Id"
+                                      style="cursor:pointer;"
+                                      class="badge @(item.IsAvailable ? "badge-success" : "badge-danger")"
+                                      onclick="toggleStatus(@item.Id)">
+                                    @(item.IsAvailable ? "Müsait" : "Kirada")
+                                </span>
+                            </td>
+                            <td>@item.Description</td>
+                            <td>
+                                <a asp-controller="Admin" asp-action="Upsert" asp-route-id="@item.Id" class="btn btn-warning btn-sm" style="margin-bottom: 5px;">Düzenle</a>
+
+                                <a asp-controller="Admin" asp-action="Delete" asp-route-id="@item.Id"
+                                   class="btn btn-danger btn-sm style=" margin-top: 5px;"
+                                   onclick="return confirm('Bu aracı silmek istediğinize emin misiniz?');">
+                                    Sil
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+        function toggleStatus(id) {
+            $.ajax({
+                url: '/Admin/ToggleStatus',
+                type: 'POST',
+                data: { id: id },
+                success: function (response) {
+                    if (response.success) {
+                        var badge = $("#status-" + id);
+
+                        if (response.isAvailable) {
+                            badge.removeClass("badge-danger").addClass("badge-success");
+                            badge.text("Müsait");
+                        } else {
+                            badge.removeClass("badge-success").addClass("badge-danger");
+                            badge.text("Kirada");
+                        }
+                    } else {
+                        alert("Bir hata oluştu: " + response.message);
+                    }
+                },
+                error: function () {
+                    alert("Sunucuyla iletişim kurulamadı.");
+                }
+            });
+        }
+    </script>
+}

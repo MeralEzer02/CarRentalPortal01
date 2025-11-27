@@ -10,10 +10,10 @@ namespace CarRentalPortal01.Repositories
         protected readonly CarRentalDbContext _context;
         private readonly DbSet<T> _dbSet;
 
-        public GenericRepository(CarRentalDbContext context, DbSet<T> dbSet)
+        public GenericRepository(CarRentalDbContext context)
         {
             _context = context;
-            _dbSet = dbSet;          
+            _dbSet = _context.Set<T>();          
         }
         public T? GetById(int id)
         {

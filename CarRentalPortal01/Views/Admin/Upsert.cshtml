@@ -1,0 +1,69 @@
+﻿@model CarRentalPortal01.ViewModels.VehicleUpsertViewModel
+
+@{
+    // Başlık dinamik olsun: ID varsa "Güncelle", yoksa "Ekle"
+    var title = Model.Vehicle.Id != 0 ? "Araç Güncelle" : "Araç Ekle";
+    ViewData["Title"] = title;
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">@title</h6>
+    </div>
+    <div class="card-body">
+        <form method="post" asp-action="Upsert">
+            <input asp-for="Vehicle.Id" hidden />
+
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    <label>Marka</label>
+                    <input asp-for="Vehicle.Brand" class="form-control" placeholder="Örn: Audi" />
+                </div>
+                <div class="col-md-6 form-group">
+                    <label>Model</label>
+                    <input asp-for="Vehicle.Model" class="form-control" placeholder="Örn: A3 Sedan" />
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 form-group">
+                    <label>Yıl</label>
+                    <input asp-for="Vehicle.Year" type="number" class="form-control" />
+                </div>
+                <div class="col-md-4 form-group">
+                    <label>Plaka</label>
+                    <input asp-for="Vehicle.LicensePlate" class="form-control" />
+                </div>
+                <div class="col-md-4 form-group">
+                    <label>Günlük Ücret (₺)</label>
+                    <input asp-for="Vehicle.DailyRentalRate" type="number" step="0.01" class="form-control" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Resim URL</label>
+                <input asp-for="Vehicle.ImageUrl" class="form-control" placeholder="https://..." />
+                <small class="form-text text-muted">İnternetten bulduğunuz bir resim bağlantısını yapıştırın.</small>
+            </div>
+
+            <div class="form-group">
+                <label>Açıklama</label>
+                <textarea asp-for="Vehicle.Description" class="form-control" rows="3"></textarea>
+            </div>
+
+            <div class="form-group form-check">
+                <input asp-for="Vehicle.IsAvailable" class="form-check-input" />
+                <label class="form-check-label">Araç Müsait mi?</label>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-icon-split">
+                <span class="icon text-white-50">
+                    <i class="fas fa-save"></i>
+                </span>
+                <span class="text">Kaydet</span>
+            </button>
+            <a asp-action="VehicleList" class="btn btn-secondary">Listeye Dön</a>
+        </form>
+    </div>
+</div>
