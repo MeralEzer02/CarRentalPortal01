@@ -1,19 +1,132 @@
-﻿@{
+﻿@model CarRentalPortal01.ViewModels.DashboardViewModel
+
+@{
     ViewData["Title"] = "Panel Özeti";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
-<h1 class="h3 mb-4 text-gray-800">Yönetim Paneline Hoş Geldiniz</h1>
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Panel İçeriği</h1>
+</div>
 
 <div class="row">
-    <div class="col-lg-12">
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Toplam Araç
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalVehicles</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-car fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Müsait Araçlar
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.AvailableVehicles</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Kayıtlı Kullanıcılar
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalUsers</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Toplam Kazanç
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalEarnings.ToString("C0")</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-lira-sign fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6 mb-4">
         <div class="card shadow mb-4">
             <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Panel Özeti</h6>
+                <h6 class="m-0 font-weight-bold text-primary">Proje Durumu</h6>
             </div>
             <div class="card-body">
-                <p>Burası yönetici panelinizin ana sayfasıdır. Sol menüden araç işlemlerini yönetebilirsiniz.</p>
-                <p class="mb-0">Proje ilerledikçe buraya istatistikler (Toplam Araç, Kiradaki Araçlar vb.) gelecektir.</p>
+                <h4 class="small font-weight-bold">
+                    Araç Doluluk Oranı <span class="float-right">
+                        @if (Model.TotalVehicles > 0)
+                        {
+                            @(((Model.TotalVehicles - Model.AvailableVehicles) * 100) / Model.TotalVehicles)
+                        }
+%
+                    </span>
+                </h4>
+                @{
+                    int percentage = 0;
+                    if (Model.TotalVehicles > 0)
+                    {
+                        percentage = ((Model.TotalVehicles - Model.AvailableVehicles) * 100) / Model.TotalVehicles;
+                    }
+                }
+                <div class="progress mb-4">
+                    <div class="progress-bar bg-danger" role="progressbar" style="width: @percentage%"
+                         aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Geliştirici Notları</h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <img class="img-fluid px-3 px-sm-4 mt-3 mb-4" style="width: 25rem;"
+                         src="~/Admin/img/undraw_posting_photo.svg" alt="...">
+                </div>
+                <p>Araç Kiralama Portalı V1.0 sürümü yayında! Motor ve Araba kategorileri tek çatı altında toplandı. Siyah konseptli araçlarımızla hizmetinizdeyiz. 🏍️🚗</p>
             </div>
         </div>
     </div>

@@ -1,0 +1,48 @@
+﻿@model CarRentalPortal01.ViewModels.UserUpsertViewModel
+
+@{
+    var title = Model.User.UserId != 0 ? "Kullanıcı Güncelle" : "Kullanıcı Ekle";
+    ViewData["Title"] = title;
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">@title</h6>
+    </div>
+    <div class="card-body">
+        <form method="post" asp-action="UserUpsert">
+            <input asp-for="User.UserId" hidden />
+
+            <div class="col-md-6 form-group">
+                <label>Kullanıcı Adı</label>
+                <input asp-for="User.UserName" class="form-control"/>
+            </div>
+
+            <div class="col-md-6 form-group">
+                <label>Email Adresi</label>
+                <input asp-for="User.Email" class="form-control" type="email" required />
+            </div>
+
+            <div class="col-md-6 form-group">
+                <label>Şifre</label>
+                <input asp-for="User.PasswordHash" class="form-control" type="text" required />
+                @if (Model.User.UserId != 0)
+                {
+                    <small class="text-muted">Şifreyi değiştirmek istemiyorsanız mevcut şifreyi aynen bırakın.</small>
+                }
+            </div>
+
+            <div class="col-md-6 form-group">
+                <label>Rol (Yetki)</label>
+                <select asp-for="User.Role" class="form-control">
+                    <option value="0">Standart Kullanıcı (0)</option>
+                    <option value="1">Yönetici - Admin (1)</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Kaydet</button>
+            <a asp-action="UserList" class="btn btn-secondary">İptal</a>
+        </form>
+    </div>
+</div>

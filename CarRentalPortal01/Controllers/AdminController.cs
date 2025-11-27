@@ -27,7 +27,16 @@ namespace CarRentalPortal01.Controllers
 
         public IActionResult Index()
         {
-            return View();
+            var model = new DashboardViewModel
+            {
+                TotalVehicles = _vehicleRepository.GetAll().Count(),
+                AvailableVehicles = _vehicleRepository.Find(v => v.IsAvailable).Count(),
+                TotalUsers = _userRepository.GetAll().Count(),
+                TotalRentals = _rentalRepository.GetAll().Count(),
+                TotalEarnings = _rentalRepository.GetAll().Sum(r => r.TotalPrice)
+            };
+
+            return View(model);
         }
         public IActionResult Profile()
         {
@@ -52,6 +61,12 @@ namespace CarRentalPortal01.Controllers
         {
             var rentals = _rentalRepository.GetAll();
             return View(rentals);
+        }
+
+        public IActionResult UserList()
+        {
+            var users = _userRepository.GetAll();
+            return View(users);
         }
 
         [HttpGet]
@@ -129,6 +144,73 @@ namespace CarRentalPortal01.Controllers
             _vehicleRepository.Save();
 
             return Json(new { success = true, isAvailable = vehicle.IsAvailable });
+        }
+
+        // --- KULLANICI İŞLEMLERİ ---
+        [HttpGet]
+        public IActionResult UserUpsert(int? id)
+        {
+            CarRentalPortal01.ViewModels.UserUpsertViewModel vm = new CarRentalPortal01.ViewModels.UserUpsertViewModel
+            {
+                User = new User()
+            };
+
+            if (id == null || id == 0)
+            {
+                return View(vm);
+            }
+            else
+            {
+                vm.User = _userRepository.GetById(id.Value);
+                if (vm.User == null)
+                {
+                    return NotFound();
+                }
+                return View(vm);
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult UserUpsert(CarRentalPortal01.ViewModels.UserUpsertViewModel vm)
+        {
+            if (ModelState.IsValid)
+            {
+                if (vm.User.UserId == 0)
+                {
+                    _userRepository.Add(vm.User);
+                    _toastNotification.AddSuccessToastMessage("Kullanıcı eklendi.");
+                }
+                else
+                {
+                    _userRepository.Update(vm.User);
+                    _toastNotification.AddSuccessToastMessage("Kullanıcı güncellendi.");
+                }
+
+                _userRepository.Save();
+                return RedirectToAction("UserList");
+            }
+
+            _toastNotification.AddErrorToastMessage("Lütfen bilgileri kontrol edin.");
+            return View(vm);
+        }
+
+        public IActionResult DeleteUser(int id)
+        {
+            var user = _userRepository.GetById(id);
+            if (user != null)
+            {
+                if (User.Identity.Name == user.Email)
+                {
+                    _toastNotification.AddErrorToastMessage("Kendi hesabınızı silemezsiniz!");
+                    return RedirectToAction("UserList");
+                }
+
+                _userRepository.Remove(user);
+                _userRepository.Save();
+                _toastNotification.AddWarningToastMessage("Kullanıcı silindi.");
+            }
+            return RedirectToAction("UserList");
         }
     }
 }

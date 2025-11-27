@@ -39,7 +39,7 @@
                     {
                         <tr>
                             <td>
-                                <img src="/@item.ImageUrl" width="200" height="110" style="object-fit:cover; border-radius:5px;" alt="Araç Resmi" />
+                                <img src="/@item.ImageUrl" width="220" height="130" style="object-fit:cover; border-radius:5px;" alt="Araç Resmi" />
                             </td>
                             <td>@item.Brand</td>
                             <td>@item.Model</td>
@@ -57,10 +57,9 @@
                             <td>@item.Description</td>
                             <td>
                                 <a asp-controller="Admin" asp-action="Upsert" asp-route-id="@item.Id" class="btn btn-warning btn-sm" style="margin-bottom: 5px;">Düzenle</a>
-
                                 <a href="javascript:void(0);"
                                    class="btn btn-danger btn-sm ml-2"
-                                   onclick="deleteVehicle('/Admin/Delete/@item.Id')">
+                                   onclick="deleteVehicle('/Admin/Delete/@item.Id', '@item.Model')">
                                     <i class="fas fa-trash"></i> Sil
                                 </a>
                             </td>
@@ -101,10 +100,10 @@
             });
         }
 
-        function deleteVehicle(url) {
+        function deleteVehicle(url, Model) {
             Swal.fire({
                 title: 'Emin misiniz?',
-                text: "Bu aracı kalıcı olarak silmek üzeresiniz!",
+                text: Model + " isimli aracı silmek üzeresiniz!",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',

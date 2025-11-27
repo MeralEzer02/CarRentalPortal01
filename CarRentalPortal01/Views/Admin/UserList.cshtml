@@ -1,0 +1,100 @@
+﻿@model IEnumerable<CarRentalPortal01.Models.User>
+
+@{
+    ViewData["Title"] = "Kullanıcı Listesi";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h1 class="h3 mb-2 text-gray-800">Kullanıcı Yönetimi</h1>
+<p class="mb-4">Sisteme kayıtlı kullanıcıları ve yetkilerini buradan görebilirsiniz.</p>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Kayıtlı Kullanıcılar</h6>
+            <a class="nav-link" asp-controller="Admin" asp-action="UserUpsert">
+                <i class="fas fa-fw fa-plus"></i>
+                <span>Kullanıcı Ekle</span>
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>#ID</th>
+                        <th>Kullanıcı Adı</th>
+                        <th>Email</th>
+                        <th>Şifre</th>
+                        <th>Rol</th>
+                        <th>Durum</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.UserId</td>
+                            <th>@item.UserName</th>
+                            <td>@item.Email</td>
+                            <td>******</td>
+                            <td>
+                                @if (item.Role == 1)
+                                {
+                                    <span class="badge badge-primary">Yönetici (Admin)</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-secondary">Standart Kullanıcı</span>
+                                }
+                            </td>
+                            <td>
+                                @if (User.Identity.Name != item.Email)
+                                {
+                                    <span class="text-muted small">Pasif Oturum</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">Aktif Oturum</span>
+                                }
+                            </td>
+                            <td>
+                                <a asp-controller="Admin" asp-action="UserUpsert" asp-route-id="@item.UserId" 
+                                class="btn btn-warning btn-sm" style="margin-bottom: 5px;">Düzenle</a>
+
+                                <a href="javascript:void(0);"
+                                   class="btn btn-danger btn-sm ml-2"
+                                   onclick="deleteUser('/Admin/DeleteUser/@item.UserId', '@item.UserName')">
+                                    <i class="fas fa-trash"></i> Sil
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function deleteUser(url, UserName) {
+            Swal.fire({
+                title: 'Emin misiniz?',
+                text: UserName + " isimli kullanıcıyı silmek üzeresiniz!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Evet, Sil!',
+                cancelButtonText: 'İptal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = url;
+                }
+            })
+        }
+    </script>
+}
