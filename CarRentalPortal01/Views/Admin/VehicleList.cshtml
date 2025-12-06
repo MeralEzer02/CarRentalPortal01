@@ -24,6 +24,7 @@
                 <thead>
                     <tr>
                         <th>Resim</th>
+                        <th>Kategori</th>
                         <th>Marka</th>
                         <th>Model</th>
                         <th>Yıl</th>
@@ -40,6 +41,19 @@
                         <tr>
                             <td>
                                 <img src="/@item.ImageUrl" width="220" height="130" style="object-fit:cover; border-radius:5px;" alt="Araç Resmi" />
+                            </td>
+                            <td>
+                                @if (item.VehicleCategories != null && item.VehicleCategories.Any())
+                                {
+                                    foreach (var vc in item.VehicleCategories)
+                                    {
+                                        <span class="badge badge-info mr-1">@vc.Category?.Name</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="badge badge-secondary">Kategorisiz</span>
+                                }
                             </td>
                             <td>@item.Brand</td>
                             <td>@item.Model</td>

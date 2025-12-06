@@ -9,9 +9,13 @@ namespace CarRentalPortal01.Data
             : base(options)
         {
         }
+
         public DbSet<User> Users { get; set; }
+        public DbSet<Category> Categories { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<Rental> Rentals { get; set; }
+        public DbSet<VehicleCategory> VehicleCategories { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Vehicle>().ToTable("Vehicle");
@@ -25,8 +29,20 @@ namespace CarRentalPortal01.Data
                 .Property(v => v.DailyRentalRate)
                 .HasColumnType("money");
 
+            modelBuilder.Entity<VehicleCategory>()
+                .HasKey(vc => new { vc.VehicleId, vc.CategoryId });
+
+            modelBuilder.Entity<VehicleCategory>()
+                .HasOne(vc => vc.Vehicle)
+                .WithMany(v => v.VehicleCategories)
+                .HasForeignKey(vc => vc.VehicleId);
+
+            modelBuilder.Entity<VehicleCategory>()
+                .HasOne(vc => vc.Category)
+                .WithMany(c => c.VehicleCategories)
+                .HasForeignKey(vc => vc.CategoryId);
+
             base.OnModelCreating(modelBuilder);
-            // Additional model configuration can go here
         }
     }
 }

@@ -26,6 +26,13 @@
                 </div>
             </div>
 
+            <div class="form-group">
+                <label class="font-weight-bold text-primary">Araç Kategorileri (Çoklu Seçim)</label>
+                <select asp-for="SelectedCategoryIds" asp-items="@Model.CategoryList" class="form-control" multiple style="height: 150px;">
+                </select>
+                <small class="form-text text-muted">Birden fazla kategori seçmek için <b>CTRL</b> tuşuna basılı tutarak tıklayın.</small>
+            </div>
+
             <div class="row">
                 <div class="col-md-4 form-group">
                     <label>Yıl</label>

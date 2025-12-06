@@ -27,6 +27,34 @@ namespace CarRentalPortal01.Repositories
         {
             return _dbSet.Where(expression);
         }
+        public IEnumerable<T> GetAll(params Expression<Func<T, object>>[] includes)
+        {
+            IQueryable<T> query = _dbSet;
+
+            if (includes != null)
+            {
+                foreach (var include in includes)
+                {
+                    query = query.Include(include);
+                }
+            }
+
+            return query.ToList();
+        }
+        public IEnumerable<T> GetAll(params string[] includes)
+        {
+            IQueryable<T> query = _dbSet;
+
+            if (includes != null)
+            {
+                foreach (var include in includes)
+                {
+                    query = query.Include(include);
+                }
+            }
+
+            return query.ToList();
+        }
         public void Add(T entity)
         {
             _dbSet.Add(entity);

@@ -1,0 +1,25 @@
+﻿@model CarRentalPortal01.Models.Category
+
+@{
+    var title = Model.Id != 0 ? "Kategori Güncelle" : "Kategori Ekle";
+    ViewData["Title"] = title;
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">@title</h6>
+    </div>
+    <div class="card-body">
+        <form method="post" asp-action="CategoryUpsert">
+            <input asp-for="Id" hidden />
+            <div class="form-group">
+                <label>Kategori Adı</label>
+                <input asp-for="Name" class="form-control" required />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <button type="submit" class="btn btn-primary">Kaydet</button>
+            <a asp-action="CategoryList" class="btn btn-secondary">İptal</a>
+        </form>
+    </div>
+</div>

@@ -21,6 +21,7 @@
                         <th>Müşteri Adı</th>
                         <th>İletişim (Email/Tel)</th>
                         <th>Araç ID</th>
+                        <th>Araç</th>
                         <th>Başlangıç</th>
                         <th>Bitiş</th>
                         <th>Tutar</th>
@@ -39,6 +40,12 @@
                             <td>
                                 <span class="badge badge-info">Araç ID: @item.VehicleId</span>
                             </td>
+                            <th>
+                                <div>
+                                    <small> @item.Vehicle.Brand</small>
+                                    <small>@item.Vehicle.Model</small>
+                                </div>
+                            </th>
                             <td>@item.StartDate.ToShortDateString()</td>
                             <td>@item.EndDate.ToShortDateString()</td>
                             <td class="text-success font-weight-bold">@item.TotalPrice.ToString("C2")</td>

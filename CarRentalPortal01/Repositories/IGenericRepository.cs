@@ -6,6 +6,8 @@ namespace CarRentalPortal01.Repositories
     {
         T? GetById(int id);
         IEnumerable<T> GetAll();
+        IEnumerable<T> GetAll(params Expression<Func<T, object>>[] includes);
+        IEnumerable<T> GetAll(params string[] includes);
 
         IEnumerable<T> Find(Expression<Func<T, bool>> expression);
 

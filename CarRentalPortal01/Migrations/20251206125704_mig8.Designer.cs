@@ -4,6 +4,7 @@ using CarRentalPortal01.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CarRentalPortal01.Migrations
 {
     [DbContext(typeof(CarRentalDbContext))]
-    partial class CarRentalDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251206125704_mig8")]
+    partial class mig8
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -36,7 +39,7 @@ namespace CarRentalPortal01.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories");
+                    b.ToTable("Category");
                 });
 
             modelBuilder.Entity("CarRentalPortal01.Models.Rental", b =>
@@ -118,6 +121,9 @@ namespace CarRentalPortal01.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("DailyRentalRate")
                         .HasColumnType("money");
 
@@ -145,22 +151,9 @@ namespace CarRentalPortal01.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Vehicle", (string)null);
-                });
-
-            modelBuilder.Entity("CarRentalPortal01.Models.VehicleCategory", b =>
-                {
-                    b.Property<int>("VehicleId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CategoryId")
-                        .HasColumnType("int");
-
-                    b.HasKey("VehicleId", "CategoryId");
-
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("VehicleCategories");
+                    b.ToTable("Vehicle", (string)null);
                 });
 
             modelBuilder.Entity("CarRentalPortal01.Models.Rental", b =>
@@ -174,33 +167,18 @@ namespace CarRentalPortal01.Migrations
                     b.Navigation("Vehicle");
                 });
 
-            modelBuilder.Entity("CarRentalPortal01.Models.VehicleCategory", b =>
+            modelBuilder.Entity("CarRentalPortal01.Models.Vehicle", b =>
                 {
                     b.HasOne("CarRentalPortal01.Models.Category", "Category")
-                        .WithMany("VehicleCategories")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CarRentalPortal01.Models.Vehicle", "Vehicle")
-                        .WithMany("VehicleCategories")
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .WithMany("Vehicles")
+                        .HasForeignKey("CategoryId");
 
                     b.Navigation("Category");
-
-                    b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("CarRentalPortal01.Models.Category", b =>
                 {
-                    b.Navigation("VehicleCategories");
-                });
-
-            modelBuilder.Entity("CarRentalPortal01.Models.Vehicle", b =>
-                {
-                    b.Navigation("VehicleCategories");
+                    b.Navigation("Vehicles");
                 });
 #pragma warning restore 612, 618
         }
