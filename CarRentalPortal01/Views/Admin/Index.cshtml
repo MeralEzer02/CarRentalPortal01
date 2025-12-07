@@ -16,14 +16,10 @@
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                            Toplam Araç
-                        </div>
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Toplam Araç</div>
                         <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalVehicles</div>
                     </div>
-                    <div class="col-auto">
-                        <i class="fas fa-car fa-2x text-gray-300"></i>
-                    </div>
+                    <div class="col-auto"><i class="fas fa-car fa-2x text-gray-300"></i></div>
                 </div>
             </div>
         </div>
@@ -34,14 +30,10 @@
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                            Müsait Araçlar
-                        </div>
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Müsait Araçlar</div>
                         <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.AvailableVehicles</div>
                     </div>
-                    <div class="col-auto">
-                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                    </div>
+                    <div class="col-auto"><i class="fas fa-check-circle fa-2x text-gray-300"></i></div>
                 </div>
             </div>
         </div>
@@ -52,14 +44,10 @@
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                            Kayıtlı Kullanıcılar
-                        </div>
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Kayıtlı Kullanıcılar</div>
                         <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalUsers</div>
                     </div>
-                    <div class="col-auto">
-                        <i class="fas fa-users fa-2x text-gray-300"></i>
-                    </div>
+                    <div class="col-auto"><i class="fas fa-users fa-2x text-gray-300"></i></div>
                 </div>
             </div>
         </div>
@@ -70,31 +58,10 @@
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                            Toplam Kazanç
-                        </div>
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Toplam Kazanç</div>
                         <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalEarnings.ToString("C0")</div>
                     </div>
-                    <div class="col-auto">
-                        <i class="fas fa-lira-sign fa-2x text-gray-300"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-left-danger shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                            Toplam Kategori
-                        </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalCategories</div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="fas fa-tags fa-2x text-gray-300"></i>
-                    </div>
+                    <div class="col-auto"><i class="fas fa-lira-sign fa-2x text-gray-300"></i></div>
                 </div>
             </div>
         </div>
@@ -102,14 +69,18 @@
 </div>
 
 <div class="row">
-    <div class="col-lg-6 mb-4">
+
+    <div class="col-lg-6">
+
         <div class="card shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Proje Durumu</h6>
             </div>
+            <br>
             <div class="card-body">
                 <h4 class="small font-weight-bold">
-                    Araç Doluluk Oranı <span class="float-right">
+                    Araç Doluluk Oranı
+                    <span class="float-right">
                         @if (Model.TotalVehicles > 0)
                         {
                             @(((Model.TotalVehicles - Model.AvailableVehicles) * 100) / Model.TotalVehicles)
@@ -117,6 +88,7 @@
 %
                     </span>
                 </h4>
+                <br>
                 @{
                     int percentage = 0;
                     if (Model.TotalVehicles > 0)
@@ -128,23 +100,178 @@
                     <div class="progress-bar bg-danger" role="progressbar" style="width: @percentage%"
                          aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100"></div>
                 </div>
+            </div>
+            <br>
+        </div>
 
+        @{
+            var chartColors = new string[] { "#4e73df", "#1cc88a", "#36b9cc", "#f6c23e", "#e74a3b", "#858796", "#5a5c69", "#2e59d9" };
+        }
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Araçların Kategorilere Dağılımı</h6>
+            </div>
+            <div class="card-body">
+              <br>
+                <div class="row align-items-center">
+                    <div class="col-md-7">
+                        <div class="chart-pie pt-2 pb-2">
+                            <canvas id="myPieChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="mt-4 text-left small">
+                            @if (Model.CategoryNames != null)
+                            {
+                                for (int i = 0; i < Model.CategoryNames.Count; i++)
+                                {
+                                    var color = chartColors[i % chartColors.Length];
+                                    <div class="mb-2">
+                                        <span class="mr-2">
+                                            <i class="fas fa-circle" style="color: @color;"></i>
+                                            @Model.CategoryNames[i]
+                                        </span>
+                                        <span class="float-right font-weight-bold">@Model.CategoryVehicleCounts[i] Araç</span>
+                                    </div>
+                                    <hr class="my-1">
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+                <br>
             </div>
         </div>
-    </div>
 
-    <div class="col-lg-6 mb-4">
+    </div>
+    <div class="col-lg-6">
+
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-success">Performans Özeti</h6>
+                <a href="/Admin/Reports" class="text-xs font-weight-bold text-success text-uppercase mb-1">DETAYLI RAPOR</a>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="small text-gray-500">Ayın En Popüler Aracı</div>
+                    <div class="h5 font-weight-bold text-gray-800">
+                        <i class="fas fa-trophy text-warning mr-2"></i> @Model.MostPopularCar
+                    </div>
+                </div>
+                <hr>
+                <div>
+                    <div class="small text-gray-500">Ciro Şampiyonu</div>
+                    <div class="h5 font-weight-bold text-gray-800">
+                        <i class="fas fa-money-bill-wave text-success mr-2"></i> @Model.TopEarnerCar
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Yaklaşan Kiralamalar</h6>
+                <a href="/Admin/Scheduler" class="text-xs font-weight-bold text-primary text-uppercase mb-1">TÜMÜNÜ GÖR</a>
+            </div>
+            <div class="card-body">
+                <div id='miniCalendar' style="min-height: 320px;"></div>
+            </div>
+        </div>
+
         <div class="card shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Geliştirici Notları</h6>
             </div>
             <div class="card-body">
-                <div class="text-center">
-                    <img class="img-fluid px-3 px-sm-4 mt-3 mb-4" style="width: 25rem;"
-                         src="~/Admin/img/undraw_posting_photo.svg" alt="...">
+                <div class="row align-items-center">
+                    <div class="col-md-3 text-center">
+                        <img class="img-fluid px-3 px-sm-4 mt-3 mb-4" style="width: 15rem;"
+                             src="~/Admin/img/undraw_posting_photo.svg" alt="...">
+                    </div>
+                    <div class="col-md-9">
+                        <p>Araç Kiralama Portalı V1.0 sürümü yayında!🏍️🚗</p>
+                        <p class="mb-0">Yönetim paneli üzerinden tüm istatistikleri takip edebilir, yeni araç ekleyebilir ve kiralama durumlarını yönetebilirsiniz.</p>
+                    </div>
                 </div>
-                <p>Araç Kiralama Portalı V1.0 sürümü yayında! Motor ve Araba kategorileri tek çatı altında toplandı. Siyah konseptli araçlarımızla hizmetinizdeyiz. 🏍️🚗</p>
             </div>
         </div>
+
     </div>
 </div>
+
+
+@section Scripts {
+    <script src="~/Admin/vendor/chart.js/Chart.min.js"></script>
+
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+
+    <script>
+
+
+        // --- 1. PASTA GRAFİĞİ KODLARI ---
+        var categoryLabels = @Html.Raw(Json.Serialize(Model.CategoryNames));
+        var categoryData = @Html.Raw(Json.Serialize(Model.CategoryVehicleCounts));
+
+        var chartColors = ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796', '#5a5c69', '#2e59d9'];
+
+        var ctx = document.getElementById("myPieChart");
+
+        if (ctx) {
+            var myPieChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: categoryLabels,
+                    datasets: [{
+                        data: categoryData,
+                        backgroundColor: chartColors,
+                        hoverBackgroundColor: chartColors,
+                        hoverBorderColor: "rgba(234, 236, 244, 1)",
+                    }],
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    tooltips: {
+                        backgroundColor: "rgb(255,255,255)",
+                        bodyFontColor: "#858796",
+                        borderColor: '#dddfeb',
+                        borderWidth: 1,
+                        xPadding: 15,
+                        yPadding: 15,
+                        displayColors: true,
+                        caretPadding: 10,
+                    },
+                    legend: {
+                        display: false,
+                    },
+                    cutoutPercentage: 0,
+                },
+            });
+        }
+
+        // --- 2. MİNİ TAKVİM KODLARI ---
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('miniCalendar');
+
+            if (calendarEl) {
+                var miniCalendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'listMonth',
+                    locale: 'tr',
+                    headerToolbar: {
+                        left: 'prev,next',
+                        center: 'title',
+                        right: ''
+                    },
+                    height: 350,
+                    events: '/Admin/GetCalendarEvents',
+                    eventColor: '#1cc88a',
+                    noEventsContent: 'Bu ay kiralama yok',
+                    eventClick: function(info) {
+                        window.location.href = "/Admin/Scheduler";
+                    }
+                });
+
+                miniCalendar.render();
+            }
+        });
+    </script>
+}

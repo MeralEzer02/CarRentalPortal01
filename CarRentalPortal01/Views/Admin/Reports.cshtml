@@ -1,0 +1,110 @@
+﻿@model CarRentalPortal01.ViewModels.ReportsViewModel
+
+@{
+    ViewData["Title"] = "Raporlar";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h1 class="h3 mb-4 text-gray-800">Detaylı Raporlar</h1>
+
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body">
+                <div class="text-white-50 small text-uppercase mb-1">En Çok Kiralanan Araç</div>
+                <div class="h3 font-weight-bold">
+                    @if (Model.MostRentedVehicle != null)
+                    {
+                        @Model.MostRentedVehicle.Brand @Model.MostRentedVehicle.Model
+                    }
+                    else
+                    {
+                        <span>Veri Yok</span>
+                    }
+                </div>
+                <div>
+                    Toplam <strong>@Model.MostRentedCount</strong> kez kiralandı.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="card bg-success text-white shadow">
+            <div class="card-body">
+                <div class="text-white-50 small text-uppercase mb-1">Ciro Şampiyonu (En Çok Kazandıran)</div>
+                <div class="h3 font-weight-bold">
+                    @if (Model.TopEarnerVehicle != null)
+                    {
+                        @Model.TopEarnerVehicle.Brand @Model.TopEarnerVehicle.Model
+                    }
+                    else
+                    {
+                        <span>Veri Yok</span>
+                    }
+                </div>
+                <div>
+                    Toplam <strong>@Model.TopEarnerAmount.ToString("C2")</strong> kazandırdı.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Araç Performans Tablosu</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Araç</th>
+                        <th>Plaka</th>
+                        <th>Kiralama Adedi</th>
+                        <th>Toplam Kazanç</th>
+                        <th>Ortalama Kazanç</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.VehicleReports.OrderByDescending(x => x.TotalIncome))
+                    {
+                        <tr>
+                            <td>@item.VehicleName</td>
+                            <td><span class="badge badge-secondary">@item.Plate</span></td>
+                            <td>@item.RentalCount</td>
+                            <td class="text-success font-weight-bold">@item.TotalIncome.ToString("C2")</td>
+                            <td>
+                                @if (item.RentalCount > 0)
+                                {
+                                    @((item.TotalIncome / item.RentalCount).ToString("C2"))
+                                }
+                                else
+                                {
+                                    <span>-</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/Admin/vendor/datatables/jquery.dataTables.min.js"></script>
+    <script src="~/Admin/vendor/datatables/dataTables.bootstrap4.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            $('#dataTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json'
+                },
+                order: [[3, 'desc']]
+            });
+        });
+    </script>
+}

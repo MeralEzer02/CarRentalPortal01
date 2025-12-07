@@ -1,0 +1,87 @@
+﻿@{
+    ViewData["Title"] = "Araç Takvimi";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h1 class="h3 mb-4 text-gray-800">Kiralama Takvimi</h1>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Araç Doluluk Durumu</h6>
+    </div>
+    <div class="card-body">
+        <div id='calendar'></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('calendar');
+
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'tr',
+                themeSystem: 'bootstrap5',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,listWeek' 
+                },
+                buttonText: {
+                    today: 'Bugün',
+                    month: 'Ay',
+                    week: 'Hafta',
+                    day: 'Gün',
+                    list: 'Liste'
+                },
+
+                events: '/Admin/GetCalendarEvents',
+
+                eventClick: function(info) {
+                    var start = info.event.start.toLocaleDateString();
+                    var end = info.event.end ? info.event.end.toLocaleDateString() : start;
+
+                    Swal.fire({
+                        title: 'Kiralama Detayı',
+                        html: `
+                            <strong>Araç/Müşteri:</strong> ${info.event.title} <br/>
+                            <strong>Başlangıç:</strong> ${start} <br/>
+                            <strong>Bitiş:</strong> ${end}
+                        `,
+                        icon: 'info',
+                        confirmButtonText: 'Tamam'
+                    });
+                }
+            });
+
+            calendar.render();
+        });
+    </script>
+
+    <style>
+        #calendar {
+            max-width: 100%;
+            margin: 0 auto;
+            min-height: 200px;
+            font-family: 'Nunito', sans-serif;
+        }
+
+        a.fc-event {
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .fc-toolbar-title {
+            font-size: 1.5rem !important;
+            color: #4e73df;
+        }
+
+        .fc-button-primary {
+            background-color: #4e73df !important;
+            border-color: #4e73df !important;
+        }
+    </style>
+}

@@ -17,8 +17,6 @@ namespace CarRentalPortal01.Controllers
         private readonly IGenericRepository<User> _userRepository;
         private readonly IGenericRepository<Category> _categoryRepository;
         private readonly IToastNotification _toastNotification;
-
-        // EKSİK OLAN KISIM BURASI: Context'i alan olarak tanımla
         private readonly Data.CarRentalDbContext _context;
 
         public AdminController(IGenericRepository<Vehicle> vehicleRepository,
@@ -39,6 +37,21 @@ namespace CarRentalPortal01.Controllers
 
         public IActionResult Index()
         {
+            var categories = _categoryRepository.GetAll(c => c.VehicleCategories);
+
+            // Kiralamaları ve araçları çekiyoruz (Mini Rapor hesabı için)
+            var allRentals = _rentalRepository.GetAll(r => r.Vehicle);
+
+            // 1. En Çok Kiralanan Aracı Bul
+            var topRentedGroup = allRentals.GroupBy(r => r.Vehicle)
+                                           .OrderByDescending(g => g.Count())
+                                           .FirstOrDefault();
+
+            // 2. En Çok Kazandıran Aracı Bul
+            var topEarnerGroup = allRentals.GroupBy(r => r.Vehicle)
+                                           .OrderByDescending(g => g.Sum(x => x.TotalPrice))
+                                           .FirstOrDefault();
+
             var model = new DashboardViewModel
             {
                 TotalVehicles = _vehicleRepository.GetAll().Count(),
@@ -46,7 +59,14 @@ namespace CarRentalPortal01.Controllers
                 TotalUsers = _userRepository.GetAll().Count(),
                 TotalRentals = _rentalRepository.GetAll().Count(),
                 TotalEarnings = _rentalRepository.GetAll().Sum(r => r.TotalPrice),
-                TotalCategories = _categoryRepository.GetAll().Count()
+
+                TotalCategories = _categoryRepository.GetAll().Count(),
+
+                CategoryNames = categories.Select(c => c.Name).ToList(),
+                CategoryVehicleCounts = categories.Select(c => c.VehicleCategories != null ? c.VehicleCategories.Count : 0).ToList(),
+
+                MostPopularCar = topRentedGroup != null ? $"{topRentedGroup.Key.Brand} {topRentedGroup.Key.Model}" : "Veri Yok",
+                TopEarnerCar = topEarnerGroup != null ? $"{topEarnerGroup.Key.Brand} {topEarnerGroup.Key.Model}" : "Veri Yok"
             };
 
             return View(model);
@@ -327,6 +347,73 @@ namespace CarRentalPortal01.Controllers
             }
 
             return RedirectToAction("CategoryList");
+        }
+
+        // --- TAKVİM (SCHEDULER) İŞLEMLERİ ---
+        public IActionResult Scheduler()
+        {
+            return View();
+        }
+        [HttpGet]
+        public IActionResult GetCalendarEvents()
+        {
+            var rentals = _rentalRepository.GetAll(r => r.Vehicle);
+
+            var events = rentals.Select(r => new
+            {
+                id = r.Id,
+                title = $"{r.Vehicle.Brand} {r.Vehicle.Model} - {r.CustomerName}",
+
+                start = r.StartDate.ToString("yyyy-MM-dd"),
+
+                end = r.EndDate.AddDays(1).ToString("yyyy-MM-dd"),
+
+                color = "#4e73df",
+                textColor = "#ffffff"
+            });
+
+            return Json(events);
+        }
+
+        // --- RAPORLAMA İŞLEMLERİ ---
+        public IActionResult Reports()
+        {
+            var rentals = _rentalRepository.GetAll(r => r.Vehicle);
+            var allVehicles = _vehicleRepository.GetAll();
+
+            var model = new ReportsViewModel
+            {
+                VehicleReports = new List<VehicleReportDto>()
+            };
+
+            foreach (var vehicle in allVehicles)
+            {
+                var vehicleRentals = rentals.Where(r => r.VehicleId == vehicle.Id).ToList();
+
+                model.VehicleReports.Add(new VehicleReportDto
+                {
+                    VehicleName = $"{vehicle.Brand} {vehicle.Model}",
+                    Plate = vehicle.LicensePlate,
+                    RentalCount = vehicleRentals.Count(),
+                    TotalIncome = vehicleRentals.Sum(r => r.TotalPrice)
+                });
+            }
+
+            var topRented = model.VehicleReports.OrderByDescending(x => x.RentalCount).FirstOrDefault();
+            if (topRented != null)
+            {
+                model.MostRentedVehicle = allVehicles.FirstOrDefault(v => v.LicensePlate == topRented.Plate);
+                model.MostRentedCount = topRented.RentalCount;
+            }
+
+            var topEarner = model.VehicleReports.OrderByDescending(x => x.TotalIncome).FirstOrDefault();
+            if (topEarner != null)
+            {
+                model.TopEarnerVehicle = allVehicles.FirstOrDefault(v => v.LicensePlate == topEarner.Plate);
+                model.TopEarnerAmount = topEarner.TotalIncome;
+            }
+
+            return View(model);
         }
     }
 }

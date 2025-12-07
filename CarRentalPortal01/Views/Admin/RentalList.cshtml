@@ -18,9 +18,8 @@
                 <thead>
                     <tr>
                         <th>#ID</th>
-                        <th>Müşteri Adı</th>
-                        <th>İletişim (Email/Tel)</th>
-                        <th>Araç ID</th>
+                        <th>Müşteri</th>
+                        <th>İletişim</th>
                         <th>Araç</th>
                         <th>Başlangıç</th>
                         <th>Bitiş</th>
@@ -32,20 +31,44 @@
                     {
                         <tr>
                             <td>@item.Id</td>
-                            <td>@item.CustomerName</td>
                             <td>
-                                <div><small>@item.CustomerEmail</small></div>
-                                <div><small>@item.CustomerPhone</small></div>
+                                @if (item.User != null)
+                                {
+                                    <span class="font-weight-bold">
+                                        @(string.IsNullOrEmpty(item.User.UserName) ? item.User.Email : item.User.UserName)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger">Kullanıcı Silinmiş</span>
+                                }
                             </td>
                             <td>
-                                <span class="badge badge-info">Araç ID: @item.VehicleId</span>
+                                @if (item.User != null)
+                                {
+                                    <div><small><i class="fas fa-envelope"></i> @item.User.Email</small></div>
+                                    @if (!string.IsNullOrEmpty(item.User.PhoneNumber))
+                                    {
+                                        <div><small><i class="fas fa-phone"></i> @item.User.PhoneNumber</small></div>
+                                    }
+                                }
                             </td>
-                            <th>
-                                <div>
-                                    <small> @item.Vehicle.Brand</small>
-                                    <small>@item.Vehicle.Model</small>
-                                </div>
-                            </th>
+                            <td>
+                                @if (item.Vehicle != null)
+                                {
+                                    <div class="d-flex align-items-center">
+                                        <img src="@item.Vehicle.ImageUrl" style="width: 50px; height: 30px; object-fit: cover; border-radius: 3px; margin-right: 5px;" />
+                                        <div>
+                                            <span class="badge badge-primary">@item.Vehicle.Brand</span>
+                                            <span class="small d-block">@item.Vehicle.Model</span>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-danger">Araç Silinmiş</span>
+                                }
+                            </td>
                             <td>@item.StartDate.ToShortDateString()</td>
                             <td>@item.EndDate.ToShortDateString()</td>
                             <td class="text-success font-weight-bold">@item.TotalPrice.ToString("C2")</td>
