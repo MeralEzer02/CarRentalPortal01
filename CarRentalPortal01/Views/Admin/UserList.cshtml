@@ -24,10 +24,9 @@
                 <thead>
                     <tr>
                         <th>#ID</th>
-                        <th>Kullanıcı Adı</th>
-                        <th>Email</th>
-                        <th>Şifre</th>
+                        <th>Kullanıcı</th>
                         <th>Rol</th>
+                        <th>Kiralama Geçmişi</th>
                         <th>Durum</th>
                         <th>İşlemler</th>
                     </tr>
@@ -37,9 +36,10 @@
                     {
                         <tr>
                             <td>@item.UserId</td>
-                            <th>@item.UserName</th>
-                            <td>@item.Email</td>
-                            <td>******</td>
+                            <td>
+                                <div class="font-weight-bold">@item.UserName</div>
+                                <div class="small text-muted">@item.Email</div>
+                            </td>
                             <td>
                                 @if (item.Role == 1)
                                 {
@@ -47,9 +47,30 @@
                                 }
                                 else
                                 {
-                                    <span class="badge badge-secondary">Standart Kullanıcı</span>
+                                    <span class="badge badge-secondary">Kullanıcı</span>
                                 }
                             </td>
+
+                            <td>
+                                @if (item.Rentals != null && item.Rentals.Any())
+                                {
+                                    foreach (var rent in item.Rentals.OrderByDescending(r => r.EndDate))
+                                    {
+                                        bool isActive = rent.EndDate >= DateTime.Now;
+                                        string badgeClass = isActive ? "badge-success" : "badge-secondary";
+                                        string statusText = isActive ? "(Aktif)" : "";
+                                        <span class="badge @badgeClass mr-1 mb-1">
+                                            @rent.Vehicle?.Brand @rent.Vehicle?.Model @statusText
+                                        </span>
+                                        <br>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">-</span>
+                                }
+                            </td>
+
                             <td>
                                 @if (User.Identity.Name != item.Email)
                                 {
@@ -57,12 +78,12 @@
                                 }
                                 else
                                 {
-                                    <span class="text-muted small">Aktif Oturum</span>
+                                    <span class="text-success small font-weight-bold">Aktif Oturum</span>
                                 }
                             </td>
                             <td>
-                                <a asp-controller="Admin" asp-action="UserUpsert" asp-route-id="@item.UserId" 
-                                class="btn btn-warning btn-sm" style="margin-bottom: 5px;">Düzenle</a>
+                                <a asp-controller="Admin" asp-action="UserUpsert" asp-route-id="@item.UserId"
+                                   class="btn btn-warning btn-sm" style="margin-bottom: 5px;">Düzenle</a>
 
                                 <a href="javascript:void(0);"
                                    class="btn btn-danger btn-sm ml-2"
@@ -80,10 +101,10 @@
 
 @section Scripts {
     <script>
-        function deleteUser(url, UserName) {
+        function deleteUser(url, userName) {
             Swal.fire({
                 title: 'Emin misiniz?',
-                text: UserName + " isimli kullanıcıyı silmek üzeresiniz!",
+                text: userName + " isimli kullanıcıyı silmek üzeresiniz!",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',

@@ -1,7 +1,7 @@
-﻿@model CarRentalPortal01.Models.Category
+﻿@model CarRentalPortal01.ViewModels.CategoryUpsertViewModel
 
 @{
-    var title = Model.Id != 0 ? "Kategori Güncelle" : "Kategori Ekle";
+    var title = Model.Category.Id != 0 ? "Kategori Güncelle" : "Kategori Ekle";
     ViewData["Title"] = title;
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
@@ -12,12 +12,21 @@
     </div>
     <div class="card-body">
         <form method="post" asp-action="CategoryUpsert">
-            <input asp-for="Id" hidden />
+            <input asp-for="Category.Id" hidden />
+
             <div class="form-group">
                 <label>Kategori Adı</label>
-                <input asp-for="Name" class="form-control" required />
-                <span asp-validation-for="Name" class="text-danger"></span>
+                <input asp-for="Category.Name" class="form-control" required />
+                <span asp-validation-for="Category.Name" class="text-danger"></span>
             </div>
+
+            <div class="form-group">
+                <label class="font-weight-bold text-primary">Bu Kategoriye Dahil Araçlar (Çoklu Seçim)</label>
+                <select asp-for="SelectedVehicleIds" asp-items="@Model.VehicleList" class="form-control" multiple style="height: 200px;">
+                </select>
+                <small class="form-text text-muted">Birden fazla araç seçmek için <b>CTRL</b> tuşuna basılı tutarak tıklayın.</small>
+            </div>
+
             <button type="submit" class="btn btn-primary">Kaydet</button>
             <a asp-action="CategoryList" class="btn btn-secondary">İptal</a>
         </form>

@@ -31,23 +31,17 @@ namespace CarRentalPortal01.Controllers
             _userRepository = userRepository;
             _categoryRepository = categoryRepository;
             _toastNotification = toastNotification;
-
             _context = context;
         }
 
         public IActionResult Index()
         {
             var categories = _categoryRepository.GetAll(c => c.VehicleCategories);
-
-            // Kiralamaları ve araçları çekiyoruz (Mini Rapor hesabı için)
             var allRentals = _rentalRepository.GetAll(r => r.Vehicle);
-
-            // 1. En Çok Kiralanan Aracı Bul
             var topRentedGroup = allRentals.GroupBy(r => r.Vehicle)
                                            .OrderByDescending(g => g.Count())
                                            .FirstOrDefault();
 
-            // 2. En Çok Kazandıran Aracı Bul
             var topEarnerGroup = allRentals.GroupBy(r => r.Vehicle)
                                            .OrderByDescending(g => g.Sum(x => x.TotalPrice))
                                            .FirstOrDefault();
@@ -71,6 +65,7 @@ namespace CarRentalPortal01.Controllers
 
             return View(model);
         }
+
         public IActionResult Profile()
         {
             var userEmail = User.Identity?.Name;
@@ -84,25 +79,27 @@ namespace CarRentalPortal01.Controllers
             return View(user);
         }
 
+        // --- LİSTELEME İŞLEMLERİ ---
+
         public IActionResult VehicleList()
         {
             var vehicles = _vehicleRepository.GetAll("VehicleCategories.Category");
-
             return View(vehicles);
         }
 
         public IActionResult RentalList()
         {
-            var rentals = _rentalRepository.GetAll(r => r.Vehicle);
-
+            var rentals = _rentalRepository.GetAll("Vehicle", "User");
             return View(rentals);
         }
 
         public IActionResult UserList()
         {
-            var users = _userRepository.GetAll();
+            var users = _userRepository.GetAll("Rentals.Vehicle");
             return View(users);
         }
+
+        // --- ARAÇ EKLEME / GÜNCELLEME ---
 
         [HttpGet]
         public IActionResult Upsert(int? id)
@@ -216,6 +213,7 @@ namespace CarRentalPortal01.Controllers
         }
 
         // --- KULLANICI İŞLEMLERİ ---
+
         [HttpGet]
         public IActionResult UserUpsert(int? id)
         {
@@ -243,6 +241,11 @@ namespace CarRentalPortal01.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult UserUpsert(CarRentalPortal01.ViewModels.UserUpsertViewModel vm)
         {
+            if (vm.User.UserId != 0 && string.IsNullOrEmpty(vm.User.PasswordHash))
+            {
+                ModelState.Remove("User.Password");
+            }
+
             if (ModelState.IsValid)
             {
                 if (vm.User.UserId == 0)
@@ -252,8 +255,22 @@ namespace CarRentalPortal01.Controllers
                 }
                 else
                 {
-                    _userRepository.Update(vm.User);
-                    _toastNotification.AddSuccessToastMessage("Kullanıcı güncellendi.");
+                    var existingUser = _userRepository.GetById(vm.User.UserId);
+                    if (existingUser != null)
+                    {
+                        existingUser.Email = vm.User.Email;
+                        existingUser.Role = vm.User.Role;
+                        existingUser.UserName = vm.User.UserName;
+                        existingUser.PhoneNumber = vm.User.PhoneNumber;
+
+                        if (!string.IsNullOrEmpty(vm.User.PasswordHash))
+                        {
+                            existingUser.PasswordHash = vm.User.PasswordHash;
+                        }
+
+                        _userRepository.Update(existingUser);
+                        _toastNotification.AddSuccessToastMessage("Kullanıcı güncellendi.");
+                    }
                 }
 
                 _userRepository.Save();
@@ -293,35 +310,80 @@ namespace CarRentalPortal01.Controllers
         [HttpGet]
         public IActionResult CategoryUpsert(int? id)
         {
-            Category category = new Category();
-            if (id == null || id == 0) return View(category);
+            CategoryUpsertViewModel vm = new CategoryUpsertViewModel
+            {
+                Category = new Category(),
+                VehicleList = _vehicleRepository.GetAll().Select(v => new SelectListItem
+                {
+                    Text = $"{v.Brand} {v.Model} ({v.LicensePlate})",
+                    Value = v.Id.ToString()
+                })
+            };
 
-            category = _categoryRepository.GetById(id.Value);
-            if (category == null) return NotFound();
+            if (id == null || id == 0)
+            {
+                return View(vm);
+            }
+            else
+            {
+                var category = _categoryRepository.GetAll("VehicleCategories").FirstOrDefault(c => c.Id == id);
+                if (category == null) return NotFound();
 
-            return View(category);
+                vm.Category = category;
+
+                if (category.VehicleCategories != null)
+                {
+                    vm.SelectedVehicleIds = category.VehicleCategories.Select(vc => vc.VehicleId).ToArray();
+                }
+
+                return View(vm);
+            }
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult CategoryUpsert(Category category)
+        public IActionResult CategoryUpsert(CategoryUpsertViewModel vm)
         {
             if (ModelState.IsValid)
             {
-                if (category.Id == 0)
+                if (vm.Category.Id == 0)
                 {
-                    _categoryRepository.Add(category);
+                    _categoryRepository.Add(vm.Category);
                     _toastNotification.AddSuccessToastMessage("Kategori eklendi.");
                 }
                 else
                 {
-                    _categoryRepository.Update(category);
+                    _categoryRepository.Update(vm.Category);
                     _toastNotification.AddSuccessToastMessage("Kategori güncellendi.");
                 }
                 _categoryRepository.Save();
+
+                var existingLinks = _context.VehicleCategories.Where(x => x.CategoryId == vm.Category.Id).ToList();
+                _context.VehicleCategories.RemoveRange(existingLinks);
+
+                if (vm.SelectedVehicleIds != null)
+                {
+                    foreach (var vehicleId in vm.SelectedVehicleIds)
+                    {
+                        _context.VehicleCategories.Add(new VehicleCategory
+                        {
+                            CategoryId = vm.Category.Id,
+                            VehicleId = vehicleId
+                        });
+                    }
+                }
+                _context.SaveChanges();
+
                 return RedirectToAction("CategoryList");
             }
-            return View(category);
+
+            vm.VehicleList = _vehicleRepository.GetAll().Select(v => new SelectListItem
+            {
+                Text = $"{v.Brand} {v.Model}",
+                Value = v.Id.ToString()
+            });
+
+            return View(vm);
         }
 
         public IActionResult DeleteCategory(int id)
@@ -354,15 +416,17 @@ namespace CarRentalPortal01.Controllers
         {
             return View();
         }
+
         [HttpGet]
         public IActionResult GetCalendarEvents()
         {
-            var rentals = _rentalRepository.GetAll(r => r.Vehicle);
+            var rentals = _rentalRepository.GetAll("Vehicle", "User");
 
             var events = rentals.Select(r => new
             {
                 id = r.Id,
-                title = $"{r.Vehicle.Brand} {r.Vehicle.Model} - {r.CustomerName}",
+
+                title = $"{r.Vehicle?.Brand} {r.Vehicle?.Model} - {(r.User != null ? (!string.IsNullOrEmpty(r.User.UserName) ? r.User.UserName : r.User.Email) : "Bilinmeyen Kullanıcı")}",
 
                 start = r.StartDate.ToString("yyyy-MM-dd"),
 

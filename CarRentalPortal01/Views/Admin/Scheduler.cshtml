@@ -25,18 +25,23 @@
                 initialView: 'dayGridMonth',
                 locale: 'tr',
                 themeSystem: 'bootstrap5',
+
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,listWeek' 
+                    right: 'dayGridMonth,timeGridWeek,listWeek,multiMonthYear'
                 },
+
                 buttonText: {
                     today: 'Bugün',
                     month: 'Ay',
                     week: 'Hafta',
                     day: 'Gün',
-                    list: 'Liste'
+                    list: 'Liste',
+                    year: 'Yıl'
                 },
+
+                multiMonthMaxColumns: 4,
 
                 events: '/Admin/GetCalendarEvents',
 
