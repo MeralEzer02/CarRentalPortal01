@@ -5,14 +5,28 @@
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
+<style>
+    div.dataTables_wrapper div.dataTables_filter {
+        text-align: right;
+    }
+    .dataTables_wrapper {
+        padding: 5px;
+    }
+    #VehicleList thead th {
+        background-color: #f8f9fc;
+        color: #4e73df;
+        border-bottom: 2px solid #e3e6f0;
+    }
+</style>
+
 <h1 class="h3 mb-2 text-gray-800">Araç Listesi</h1>
-<p class="mb-4">Sistemde kayıtlı olan tüm araçları buradan görüntüleyebilir ve yönetebilirsiniz.</p>
+<p class="mb-4">Filodaki tüm araçların durumunu ve teknik detaylarını buradan yönetebilirsiniz.</p>
 
 <div class="card shadow mb-4">
     <div class="card-header py-3">
         <div class="d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold text-primary">Kayıtlı Araçlar</h6>
-            <a class="nav-link" asp-controller="Admin" asp-action="Upsert">
+            <a class="nav-link btn btn-primary btn-sm text-white" asp-controller="Admin" asp-action="Upsert">
                 <i class="fas fa-fw fa-plus"></i>
                 <span>Araç Ekle</span>
             </a>
@@ -20,19 +34,15 @@
     </div>
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+            <table class="table table-bordered table-striped table-hover" id="VehicleList" width="100%" cellspacing="0">
                 <thead>
                     <tr>
-                        <th>Resim</th>
-                        <th>Kategori</th>
-                        <th>Marka</th>
-                        <th>Model</th>
-                        <th>Yıl</th>
-                        <th>Plaka</th>
-                        <th>Günlük Ücret</th>
+                        <th style="width: 110px;">Görsel</th>
+                        <th>Araç Bilgisi</th>
+                        <th>Teknik Özellikler</th> <th>KM</th>                <th>Plaka / Yıl</th>
+                        <th>Fiyat (Günlük)</th>
                         <th>Durum</th>
-                        <th>Açıklama</th>
-                        <th>İşlemler</th>
+                        <th style="width: 100px;">İşlemler</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -40,42 +50,87 @@
                     {
                         <tr>
                             <td>
-                                <img src="/@item.ImageUrl" width="220" height="130" style="object-fit:cover; border-radius:5px;" alt="Araç Resmi" />
+                                <img src="/@item.ImageUrl" width="100" height="70" style="object-fit:cover; border-radius:5px; border:1px solid #ddd;" alt="Araç" />
                             </td>
+                            
                             <td>
+                                <div class="font-weight-bold text-primary" style="font-size: 1.1em;">@item.Brand @item.Model</div>
+                                
                                 @if (item.VehicleCategories != null && item.VehicleCategories.Any())
                                 {
                                     foreach (var vc in item.VehicleCategories)
                                     {
-                                        <span class="badge badge-info mr-1">@vc.Category?.Name</span>
+                                        <span class="badge badge-secondary mt-1" style="font-weight: normal;">@vc.Category?.Name</span>
                                     }
                                 }
                                 else
                                 {
-                                    <span class="badge badge-secondary">Kategorisiz</span>
+                                    <span class="badge badge-light border mt-1 text-muted">Kategorisiz</span>
                                 }
                             </td>
-                            <td>@item.Brand</td>
-                            <td>@item.Model</td>
-                            <td>@item.Year</td>
-                            <td><span class="badge badge-secondary">@item.LicensePlate</span></td>
-                            <td>@item.DailyRentalRate.ToString("C2")</td>
+
+                            <td>
+                                <div style="font-size: 0.9rem; line-height: 1.6;">
+                                    <div>
+                                        <i class="fas fa-gas-pump text-info mr-2" style="width:15px; text-align:center;"></i>
+                                        @(string.IsNullOrEmpty(item.FuelType) ? "-" : item.FuelType)
+                                    </div>
+                                    <div>
+                                        <i class="fas fa-cogs text-secondary mr-2" style="width:15px; text-align:center;"></i>
+                                        @(string.IsNullOrEmpty(item.GearType) ? "-" : item.GearType)
+                                    </div>
+                                    <div>
+                                        <i class="fas fa-palette text-warning mr-2" style="width:15px; text-align:center;"></i>
+                                        @(string.IsNullOrEmpty(item.Color) ? "-" : item.Color)
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td>
+                                @if(item.Kilometer.HasValue)
+                                {
+                                    <span class="font-weight-bold">@item.Kilometer.Value.ToString("N0")</span> <small class="text-muted">km</small>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+
+                            <td>
+                                <div class="font-weight-bold text-dark border px-2 py-1 rounded bg-light d-inline-block">
+                                    @item.LicensePlate
+                                </div>
+                                <div class="small text-muted mt-1 ml-1">
+                                    <i class="fas fa-calendar-alt"></i> @item.Year Model
+                                </div>
+                            </td>
+
+                            <td class="text-success font-weight-bold">
+                                @item.DailyRentalRate.ToString("C0")
+                            </td>
+                            
                             <td>
                                 <span id="status-@item.Id"
                                       style="cursor:pointer;"
-                                      class="badge @(item.IsAvailable ? "badge-success" : "badge-danger")"
+                                      class="badge @(item.IsAvailable ? "badge-success" : "badge-danger") p-2"
                                       onclick="toggleStatus(@item.Id)">
                                     @(item.IsAvailable ? "Müsait" : "Kirada")
                                 </span>
-                            </td>      
-                            <td>@item.Description</td>
+                            </td>
+                            
                             <td>
-                                <a asp-controller="Admin" asp-action="Upsert" asp-route-id="@item.Id" class="btn btn-warning btn-sm" style="margin-bottom: 5px;">Düzenle</a>
-                                <a href="javascript:void(0);"
-                                   class="btn btn-danger btn-sm ml-2"
-                                   onclick="deleteVehicle('/Admin/Delete/@item.Id', '@item.Model')">
-                                    <i class="fas fa-trash"></i> Sil
-                                </a>
+                                <div class="btn-group" role="group">
+                                    <a asp-controller="Admin" asp-action="Upsert" asp-route-id="@item.Id" class="btn btn-warning btn-sm" title="Düzenle">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="javascript:void(0);"
+                                       class="btn btn-danger btn-sm"
+                                       title="Sil"
+                                       onclick="deleteVehicle('/Admin/Delete/@item.Id', '@item.Brand @item.Model')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     }
@@ -85,9 +140,24 @@
     </div>
 </div>
 
-
 @section Scripts {
+    <script src="~/Admin/vendor/datatables/jquery.dataTables.min.js"></script>
+    <script src="~/Admin/vendor/datatables/dataTables.bootstrap4.min.js"></script>
+
     <script>
+        $(document).ready(function() {
+            $('#VehicleList').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json"
+                },
+                "order": [[0, "desc"]], 
+                "lengthChange": true,   
+                "searching": true,      
+                "paging": true          
+            });
+        });
+
+        // Durum Değiştirme (Ajax)
         function toggleStatus(id) {
             $.ajax({
                 url: '/Admin/ToggleStatus',
@@ -96,7 +166,6 @@
                 success: function (response) {
                     if (response.success) {
                         var badge = $("#status-" + id);
-
                         if (response.isAvailable) {
                             badge.removeClass("badge-danger").addClass("badge-success");
                             badge.text("Müsait");
@@ -105,24 +174,25 @@
                             badge.text("Kirada");
                         }
                     } else {
-                        alert("Bir hata oluştu: " + response.message);
+                        alert("Hata: " + response.message);
                     }
                 },
                 error: function () {
-                    alert("Sunucuyla iletişim kurulamadı.");
+                    alert("Sunucu hatası.");
                 }
             });
         }
 
-        function deleteVehicle(url, Model) {
+        // Silme İşlemi (SweetAlert)
+        function deleteVehicle(url, modelName) {
             Swal.fire({
                 title: 'Emin misiniz?',
-                text: Model + " isimli aracı silmek üzeresiniz!",
+                text: modelName + " silinecek!",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Evet, Sil!',
+                confirmButtonText: 'Evet, Sil',
                 cancelButtonText: 'İptal'
             }).then((result) => {
                 if (result.isConfirmed) {

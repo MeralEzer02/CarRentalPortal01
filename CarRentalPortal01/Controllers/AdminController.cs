@@ -411,6 +411,114 @@ namespace CarRentalPortal01.Controllers
             return RedirectToAction("CategoryList");
         }
 
+
+        // --- KİRALAMA İŞLEMLERİ ---
+        [HttpGet]
+        public IActionResult RentalUpsert(int? id)
+        {
+            RentalUpsertViewModel vm = new RentalUpsertViewModel
+            {
+                Rental = new Rental(),
+
+                UserList = _userRepository.GetAll().Select(u => new SelectListItem
+                {
+                    Text = $"{u.UserName} ({u.Email})",
+                    Value = u.UserId.ToString()
+                }),
+
+                VehicleList = _vehicleRepository.GetAll().Select(v => new SelectListItem
+                {
+                    Text = $"{v.Brand} {v.Model} - {v.LicensePlate} ({v.DailyRentalRate:C0}/Gün)",
+                    Value = v.Id.ToString()
+                })
+            };
+
+            if (id == null || id == 0)
+            {
+                vm.Rental.StartDate = DateTime.Now;
+                vm.Rental.EndDate = DateTime.Now.AddDays(1);
+                return View(vm);
+            }
+            else
+            {
+                vm.Rental = _rentalRepository.GetById(id.Value);
+                if (vm.Rental == null) return NotFound();
+                return View(vm);
+            }
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult RentalUpsert(RentalUpsertViewModel vm)
+        {
+            ModelState.Remove("Rental.User");
+            ModelState.Remove("Rental.Vehicle");
+            ModelState.Remove("Rental.TotalPrice");
+
+            if (vm.Rental.UserId == 0 || vm.Rental.VehicleId == 0)
+            {
+                _toastNotification.AddErrorToastMessage("Lütfen Kullanıcı ve Araç seçiniz.");
+            }
+
+            if (vm.Rental.StartDate >= vm.Rental.EndDate)
+            {
+                ModelState.AddModelError("Rental.EndDate", "Bitiş tarihi başlangıçtan büyük olmalı.");
+            }
+
+            var conflictingRental = _rentalRepository.Find(r =>
+                r.VehicleId == vm.Rental.VehicleId &&      
+                r.Id != vm.Rental.Id &&                    
+                (vm.Rental.StartDate < r.EndDate && vm.Rental.EndDate > r.StartDate)
+            ).FirstOrDefault();
+
+            if (conflictingRental != null)
+            {
+                var conflictMsg = $"Bu araç seçilen tarihlerde dolu! ({conflictingRental.StartDate:dd.MM.yyyy} - {conflictingRental.EndDate:dd.MM.yyyy} arasında kirada)";
+
+                ModelState.AddModelError("", conflictMsg);
+                _toastNotification.AddErrorToastMessage("Araç bu tarihlerde müsait değil!");
+            }
+
+
+            if (ModelState.IsValid)
+            {
+                var selectedVehicle = _vehicleRepository.GetById(vm.Rental.VehicleId);
+                if (selectedVehicle != null)
+                {
+                    var days = (vm.Rental.EndDate - vm.Rental.StartDate).TotalDays;
+                    if (days < 1) days = 1;
+                    vm.Rental.TotalPrice = (decimal)days * selectedVehicle.DailyRentalRate;
+                }
+
+                if (vm.Rental.Id == 0)
+                {
+                    _rentalRepository.Add(vm.Rental);
+                    _toastNotification.AddSuccessToastMessage("Kiralama oluşturuldu.");
+                }
+                else
+                {
+                    _rentalRepository.Update(vm.Rental);
+                    _toastNotification.AddSuccessToastMessage("Kiralama güncellendi.");
+                }
+
+                _rentalRepository.Save();
+                return RedirectToAction("RentalList");
+            }
+
+            vm.UserList = _userRepository.GetAll().Select(u => new SelectListItem
+            {
+                Text = $"{u.UserName} ({u.Email})",
+                Value = u.UserId.ToString()
+            });
+
+            vm.VehicleList = _vehicleRepository.GetAll().Select(v => new SelectListItem
+            {
+                Text = $"{v.Brand} {v.Model} - {v.LicensePlate} ({v.DailyRentalRate:C0}/Gün)",
+                Value = v.Id.ToString()
+            });
+
+            return View(vm);
+        }
+
         // --- TAKVİM (SCHEDULER) İŞLEMLERİ ---
         public IActionResult Scheduler()
         {
@@ -478,6 +586,35 @@ namespace CarRentalPortal01.Controllers
             }
 
             return View(model);
+        }
+
+
+        // --- STOK DURUMU / ENVANTER RAPORU ---
+
+        public IActionResult Inventory()
+        {
+            var allVehicles = _vehicleRepository.GetAll();
+
+            var inventory = allVehicles
+                .GroupBy(v => new { v.Brand, v.Model, v.Color, v.FuelType, v.GearType })
+                .Select(g => new InventoryItemViewModel
+                {
+                    Brand = g.Key.Brand,
+                    Model = g.Key.Model,
+                    Color = g.Key.Color ?? "Belirtilmemiş",
+                    FuelType = g.Key.FuelType ?? "-",
+                    GearType = g.Key.GearType ?? "-",
+
+                    TotalCount = g.Count(),
+
+                    AvailableCount = g.Count(v => v.IsAvailable),
+
+                    RentedCount = g.Count(v => !v.IsAvailable)
+                })
+                .OrderByDescending(x => x.TotalCount)
+                .ToList();
+
+            return View(inventory);
         }
     }
 }

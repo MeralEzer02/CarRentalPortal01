@@ -1,0 +1,69 @@
+﻿@model CarRentalPortal01.ViewModels.RentalUpsertViewModel
+
+@{
+    var title = Model.Rental.Id != 0 ? "Kiralama Düzenle" : "Yeni Kiralama Oluştur";
+    ViewData["Title"] = title;
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">@title</h6>
+    </div>
+    <div class="card-body">
+        <form method="post" asp-action="RentalUpsert">
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+            <input asp-for="Rental.Id" hidden />
+
+            @if (Model.Rental.Id == 0)
+            {
+                <input type="hidden" asp-for="Rental.TotalPrice" value="0" />
+            }
+            else
+            {
+                <input type="hidden" asp-for="Rental.TotalPrice" />
+            }
+
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    <label class="font-weight-bold">Müşteri Seçin</label>
+                    <select asp-for="Rental.UserId" asp-items="@Model.UserList" class="form-control">
+                        <option disabled selected>-- Müşteri Seçiniz --</option>
+                    </select>
+                    <span asp-validation-for="Rental.UserId" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 form-group">
+                    <label class="font-weight-bold">Araç Seçin</label>
+                    <select asp-for="Rental.VehicleId" asp-items="@Model.VehicleList" class="form-control">
+                        <option disabled selected>-- Araç Seçiniz --</option>
+                    </select>
+                    <span asp-validation-for="Rental.VehicleId" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    <label class="font-weight-bold">Alış Tarihi</label>
+                    <input asp-for="Rental.StartDate" type="date" class="form-control" />
+                    <span asp-validation-for="Rental.StartDate" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 form-group">
+                    <label class="font-weight-bold">Teslim Tarihi</label>
+                    <input asp-for="Rental.EndDate" type="date" class="form-control" />
+                    <span asp-validation-for="Rental.EndDate" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="alert alert-info mt-3">
+                <i class="fas fa-info-circle"></i> Toplam tutar, seçilen aracın günlük ücretine ve tarih aralığına göre <b>otomatik hesaplanacaktır.</b>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Kaydet
+            </button>
+            <a asp-action="RentalList" class="btn btn-secondary">İptal</a>
+        </form>
+    </div>
+</div>

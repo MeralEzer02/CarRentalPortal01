@@ -1,0 +1,113 @@
+﻿@model IEnumerable<CarRentalPortal01.ViewModels.InventoryItemViewModel>
+
+@{
+    ViewData["Title"] = "Stok Durumu";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h1 class="h3 mb-4 text-gray-800">Stok ve Envanter Durumu</h1>
+
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Toplam Araç</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.Sum(x => x.TotalCount)</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-car fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Müsait (Boşta)</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.Sum(x => x.AvailableCount)</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Model Bazlı Stok Dağılımı</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped" id="InventoryTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Marka & Model</th>
+                        <th>Renk</th>
+                        <th>Özellikler</th>
+                        <th>Toplam Stok</th>
+                        <th>Durum Dağılımı</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div class="font-weight-bold text-primary">@item.Brand</div>
+                                <div class="small">@item.Model</div>
+                            </td>
+                            <td>
+                                <span class="badge badge-light border">
+                                    <i class="fas fa-palette mr-1"></i> @item.Color
+                                </span>
+                            </td>
+                            <td>
+                                <div class="small">@item.FuelType, @item.GearType</div>
+                            </td>
+                            <td class="text-center font-weight-bold" style="font-size:1.2em;">
+                                @item.TotalCount
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="mr-2 small text-success">@item.AvailableCount Müsait</div>
+                                    <div class="progress flex-grow-1" style="height: 10px;">
+                                        @{
+                                            var availablePercent = (double)item.AvailableCount / item.TotalCount * 100;
+                                        }
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: @availablePercent%"
+                                             aria-valuenow="@item.AvailableCount" aria-valuemin="0" aria-valuemax="@item.TotalCount"></div>
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: @(100 - availablePercent)%"
+                                             aria-valuenow="@item.RentedCount" aria-valuemin="0" aria-valuemax="@item.TotalCount"></div>
+                                    </div>
+                                    <div class="ml-2 small text-danger">@item.RentedCount Kirada</div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/Admin/vendor/datatables/jquery.dataTables.min.js"></script>
+    <script src="~/Admin/vendor/datatables/dataTables.bootstrap4.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#InventoryTable').DataTable({
+                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json" },
+                "order": [[3, "desc"]]
+            });
+        });
+    </script>
+}

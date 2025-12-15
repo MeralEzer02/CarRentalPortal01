@@ -5,16 +5,41 @@
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
-<h1 class="h3 mb-2 text-gray-800">Kiralama İşlemleri</h1>
+<style>
+    /* Arama kutusunu (Search) sağa yasla */
+    div.dataTables_wrapper div.dataTables_filter {
+        text-align: right;
+    }
+
+    /* Arama kutusu ile tablonun arasına biraz boşluk koy */
+    .dataTables_wrapper {
+        padding: 5px;
+    }
+
+    /* Tablo başlıklarını daha belirgin yap */
+    #RentalTable thead th {
+        background-color: #f8f9fc;
+        color: #4e73df;
+        border-bottom: 2px solid #e3e6f0;
+    }
+</style>
+
+<h1 class="h3 mb-2 text-gray-800">Kiralama Yönetimi</h1>
 <p class="mb-4">Araç kiralama geçmişini ve aktif kiralamaları buradan takip edebilirsiniz.</p>
 
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Kiralama Listesi</h6>
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Kiralama Listesi</h6>
+            <a class="nav-link btn btn-primary btn-sm text-white" asp-controller="Admin" asp-action="RentalUpsert">
+                <i class="fas fa-fw fa-plus"></i>
+                <span>Yeni Kiralama</span>
+            </a>
+        </div>
     </div>
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+            <table class="table table-bordered table-striped table-hover" id="RentalTable" width="100%" cellspacing="0">
                 <thead>
                     <tr>
                         <th>#ID</th>
@@ -24,6 +49,7 @@
                         <th>Başlangıç</th>
                         <th>Bitiş</th>
                         <th>Tutar</th>
+                        <th>İşlemler</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -34,22 +60,23 @@
                             <td>
                                 @if (item.User != null)
                                 {
-                                    <span class="font-weight-bold">
-                                        @(string.IsNullOrEmpty(item.User.UserName) ? item.User.Email : item.User.UserName)
-                                    </span>
+                                    <div class="font-weight-bold">
+                                        @(string.IsNullOrEmpty(item.User.UserName) ? "İsimsiz" : item.User.UserName)
+                                    </div>
+                                    <div class="small text-muted">ID: @item.User.UserId</div>
                                 }
                                 else
                                 {
-                                    <span class="text-danger">Kullanıcı Silinmiş</span>
+                                    <span class="badge badge-danger">Kullanıcı Silinmiş</span>
                                 }
                             </td>
                             <td>
                                 @if (item.User != null)
                                 {
-                                    <div><small><i class="fas fa-envelope"></i> @item.User.Email</small></div>
+                                    <div><small><i class="fas fa-envelope mr-1"></i> @item.User.Email</small></div>
                                     @if (!string.IsNullOrEmpty(item.User.PhoneNumber))
                                     {
-                                        <div><small><i class="fas fa-phone"></i> @item.User.PhoneNumber</small></div>
+                                        <div><small><i class="fas fa-phone mr-1"></i> @item.User.PhoneNumber</small></div>
                                     }
                                 }
                             </td>
@@ -57,21 +84,26 @@
                                 @if (item.Vehicle != null)
                                 {
                                     <div class="d-flex align-items-center">
-                                        <img src="/@item.Vehicle.ImageUrl" style="width: 80px; height: 50px; object-fit: cover; border-radius: 3px; margin-right: 5px;" />
+                                        <img src="/@item.Vehicle.ImageUrl" style="width: 90px; height: 60px; object-fit: cover; border-radius: 4px; margin-right: 8px;" />
                                         <div>
                                             <span class="badge badge-primary">@item.Vehicle.Brand</span>
-                                            <span class="small d-block">@item.Vehicle.Model</span>
+                                            <span class="small d-block font-weight-bold">@item.Vehicle.Model</span>
                                         </div>
                                     </div>
                                 }
                                 else
                                 {
-                                    <span class="text-danger">Araç Silinmiş</span>
+                                    <span class="badge badge-danger">Araç Silinmiş</span>
                                 }
                             </td>
-                            <td>@item.StartDate.ToShortDateString()</td>
-                            <td>@item.EndDate.ToShortDateString()</td>
+                            <td>@item.StartDate.ToString("dd.MM.yyyy")</td>
+                            <td>@item.EndDate.ToString("dd.MM.yyyy")</td>
                             <td class="text-success font-weight-bold">@item.TotalPrice.ToString("C2")</td>
+                            <td>
+                                <a asp-action="RentalUpsert" asp-route-id="@item.Id" class="btn btn-warning btn-sm">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -79,3 +111,22 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="~/Admin/vendor/datatables/jquery.dataTables.min.js"></script>
+    <script src="~/Admin/vendor/datatables/dataTables.bootstrap4.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            $('#RentalTable').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json"
+                },
+                "order": [[0, "desc"]], // ID'ye göre azalan (en yeni en üstte)
+                "lengthChange": true,
+                "searching": true,
+                "paging": true
+            });
+        });
+    </script>
+}

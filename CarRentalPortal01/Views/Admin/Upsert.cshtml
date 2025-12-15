@@ -54,6 +54,45 @@
                 <small class="form-text text-muted">İnternetten bulduğunuz bir resim bağlantısını yapıştırın.</small>
             </div>
 
+            <div class="row">
+                <div class="col-md-3 form-group">
+                    <label>Renk</label>
+                    <input asp-for="Vehicle.Color" class="form-control" placeholder="Örn: Siyah" />
+                </div>
+
+                <div class="col-md-3 form-group">
+                    <label>Yakıt Tipi</label>
+                    <select asp-for="Vehicle.FuelType" class="form-control">
+                        <option value="">Seçiniz</option>
+                        <option value="Benzin">Benzin</option>
+                        <option value="Dizel">Dizel</option>
+                        <option value="Elektrik">Elektrik</option>
+                        <option value="Hibrit">Hibrit</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3 form-group">
+                    <label>Vites</label>
+                    <select asp-for="Vehicle.GearType" class="form-control">
+                        <option value="">Seçiniz</option>
+                        <option value="Otomatik">Otomatik</option>
+                        <option value="Manuel">Manuel</option>
+                        <option value="Yarı Otomatik">Yarı Otomatik</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3 form-group">
+                    <label>Kilometre</label>
+                    <input asp-for="Vehicle.Kilometer" type="number" class="form-control" placeholder="Örn: 15000" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Varyant Grup Kodu (Opsiyonel)</label>
+                <input asp-for="Vehicle.VariantGroupId" class="form-control" placeholder="(Aynı gruptaki araçlara aynı kodu yazın)" />
+                <small class="text-muted">Eğer bu aracın farklı renkleri varsa, hepsine aynı Grup Kodunu vererek sitede birbirine bağlayabilirsiniz.</small>
+            </div>
+
             <div class="form-group">
                 <label>Açıklama</label>
                 <textarea asp-for="Vehicle.Description" class="form-control" rows="3"></textarea>

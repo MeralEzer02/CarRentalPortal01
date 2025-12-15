@@ -5,11 +5,33 @@
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
+<style>
+    /* Arama kutusunu (Search) sağa yasla */
+    div.dataTables_wrapper div.dataTables_filter {
+        text-align: right;
+    }
+
+    /* Arama kutusu ile tablonun arasına biraz boşluk koy */
+    .dataTables_wrapper {
+        padding: 5px;
+    }
+
+    /* Tablo başlıklarını daha belirgin yap */
+    #CategoryTable thead th {
+        background-color: #f8f9fc;
+        color: #4e73df;
+        border-bottom: 2px solid #e3e6f0;
+    }
+</style>
+
+<h1 class="h3 mb-2 text-gray-800">Kategori Yönetimi</h1>
+<p class="mb-4">Araç kategorilerini buradan ekleyebilir, düzenleyebilir veya silebilirsiniz.</p>
+
 <div class="card shadow mb-4">
     <div class="card-header py-3">
         <div class="d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold text-primary">Araç Kategorileri</h6>
-            <a class="nav-link" asp-controller="Admin" asp-action="CategoryUpsert">
+            <a class="nav-link btn btn-primary btn-sm text-white" asp-controller="Admin" asp-action="CategoryUpsert">
                 <i class="fas fa-fw fa-plus"></i>
                 <span>Kategori Ekle</span>
             </a>
@@ -17,7 +39,7 @@
     </div>
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+            <table class="table table-bordered table-striped table-hover" id="CategoryTable" width="100%" cellspacing="0">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -31,15 +53,22 @@
                     {
                         <tr>
                             <td>@item.Id</td>
-                            <td>@item.Name</td>
+                            <td class="font-weight-bold">@item.Name</td>
                             <td>
-                                <span class="badge badge-info">
+                                <span class="badge badge-info p-2">
+                                    <i class="fas fa-car mr-1"></i>
                                     @(item.VehicleCategories != null ? item.VehicleCategories.Count : 0) Araç
                                 </span>
                             </td>
                             <td>
-                                <a asp-action="CategoryUpsert" asp-route-id="@item.Id" class="btn btn-warning btn-sm">Düzenle</a>
-                                <a href="javascript:void(0);" onclick="deleteCategory('/Admin/DeleteCategory/@item.Id')" class="btn btn-danger btn-sm ml-2">Sil</a>
+                                <div class="btn-group" role="group">
+                                    <a asp-action="CategoryUpsert" asp-route-id="@item.Id" class="btn btn-warning btn-sm">
+                                        <i class="fas fa-edit"></i> Düzenle
+                                    </a>
+                                    <a href="javascript:void(0);" onclick="deleteCategory('/Admin/DeleteCategory/@item.Id')" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-trash"></i> Sil
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     }
@@ -50,15 +79,32 @@
 </div>
 
 @section Scripts {
+    <script src="~/Admin/vendor/datatables/jquery.dataTables.min.js"></script>
+    <script src="~/Admin/vendor/datatables/dataTables.bootstrap4.min.js"></script>
+
     <script>
+        $(document).ready(function() {
+            $('#CategoryTable').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json"
+                },
+                "order": [[0, "asc"]], // Varsayılan olarak ID'ye göre sırala
+                "lengthChange": true,
+                "searching": true,
+                "paging": true
+            });
+        });
+
         function deleteCategory(url) {
             Swal.fire({
                 title: 'Emin misiniz?',
-                text: "Bu kategoriyi silmek üzeresiniz!",
+                text: "Bu kategoriyi silmek üzeresiniz! İçindeki araçlar silinmez ancak kategorisiz kalabilirler.",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
-                confirmButtonText: 'Evet, Sil!'
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Evet, Sil!',
+                cancelButtonText: 'İptal'
             }).then((result) => {
                 if (result.isConfirmed) {
                     window.location.href = url;
