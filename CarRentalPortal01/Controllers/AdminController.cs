@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using NToastNotify;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using System.IO;
 
 namespace CarRentalPortal01.Controllers
 {
@@ -17,6 +20,7 @@ namespace CarRentalPortal01.Controllers
         private readonly IGenericRepository<User> _userRepository;
         private readonly IGenericRepository<Category> _categoryRepository;
         private readonly IToastNotification _toastNotification;
+        private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly Data.CarRentalDbContext _context;
 
         public AdminController(IGenericRepository<Vehicle> vehicleRepository,
@@ -24,7 +28,8 @@ namespace CarRentalPortal01.Controllers
                                IGenericRepository<User> userRepository,
                                IGenericRepository<Category> categoryRepository,
                                IToastNotification toastNotification,
-                               Data.CarRentalDbContext context)
+                               Data.CarRentalDbContext context,
+                               IWebHostEnvironment webHostEnvironment)
         {
             _vehicleRepository = vehicleRepository;
             _rentalRepository = rentalRepository;
@@ -32,6 +37,7 @@ namespace CarRentalPortal01.Controllers
             _categoryRepository = categoryRepository;
             _toastNotification = toastNotification;
             _context = context;
+            _webHostEnvironment = webHostEnvironment;
         }
 
         public IActionResult Index()
@@ -83,7 +89,10 @@ namespace CarRentalPortal01.Controllers
 
         public IActionResult VehicleList()
         {
-            var vehicles = _vehicleRepository.GetAll("VehicleCategories.Category");
+            var vehicles = _context.Vehicles
+                .Include(v => v.VehicleCategories).ThenInclude(vc => vc.Category)
+                .Include(v => v.Maintenances)
+                .ToList();
             return View(vehicles);
         }
 
@@ -97,6 +106,21 @@ namespace CarRentalPortal01.Controllers
         {
             var users = _userRepository.GetAll("Rentals.Vehicle");
             return View(users);
+        }
+
+        // --- ARAÇ BİLGİLERİ ---
+        [HttpGet]
+        public IActionResult GetVehicleDetails(int id)
+        {
+            var vehicle = _context.Vehicles
+                .Include(v => v.VehicleCategories).ThenInclude(vc => vc.Category)
+                .Include(v => v.Rentals).ThenInclude(r => r.User)                
+                .Include(v => v.Maintenances)                                    
+                .FirstOrDefault(x => x.Id == id);
+
+            if (vehicle == null) return NotFound();
+
+            return PartialView("_VehicleDetailPartial", vehicle);
         }
 
         // --- ARAÇ EKLEME / GÜNCELLEME ---
@@ -213,71 +237,90 @@ namespace CarRentalPortal01.Controllers
         }
 
         // --- KULLANICI İŞLEMLERİ ---
-
         [HttpGet]
         public IActionResult UserUpsert(int? id)
         {
-            CarRentalPortal01.ViewModels.UserUpsertViewModel vm = new CarRentalPortal01.ViewModels.UserUpsertViewModel
-            {
-                User = new User()
-            };
+            UserUpsertViewModel vm = new UserUpsertViewModel();
 
             if (id == null || id == 0)
             {
-                return View(vm);
+                vm.User = new User();
             }
             else
             {
-                vm.User = _userRepository.GetById(id.Value);
+                vm.User = _userRepository.GetById(id.GetValueOrDefault());
                 if (vm.User == null)
                 {
                     return NotFound();
                 }
-                return View(vm);
             }
+            return View(vm);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult UserUpsert(CarRentalPortal01.ViewModels.UserUpsertViewModel vm)
+        public IActionResult UserUpsert(UserUpsertViewModel vm)
         {
-            if (vm.User.UserId != 0 && string.IsNullOrEmpty(vm.User.PasswordHash))
+            if (vm.User.UserId == 0 && string.IsNullOrEmpty(vm.User.PasswordHash))
             {
-                ModelState.Remove("User.Password");
+                ModelState.AddModelError("User.PasswordHash", "Yeni kullanıcı oluştururken şifre girmek zorundasınız.");
             }
 
             if (ModelState.IsValid)
             {
-                if (vm.User.UserId == 0)
+                // --- DOSYA YÜKLEME İŞLEMİ ---
+                if (vm.File != null)
                 {
-                    _userRepository.Add(vm.User);
-                    _toastNotification.AddSuccessToastMessage("Kullanıcı eklendi.");
+                    string wwwRootPath = _webHostEnvironment.WebRootPath;
+                    string fileName = Guid.NewGuid().ToString() + Path.GetExtension(vm.File.FileName);
+                    string licensePath = Path.Combine(wwwRootPath, @"images\licenses");
+
+                    if (!Directory.Exists(licensePath)) Directory.CreateDirectory(licensePath);
+
+                    if (vm.User.UserId != 0 && !string.IsNullOrEmpty(vm.User.DriverLicenseImage))
+                    {
+                        var oldImagePath = Path.Combine(wwwRootPath, vm.User.DriverLicenseImage.TrimStart('\\'));
+                        if (System.IO.File.Exists(oldImagePath))
+                        {
+                            System.IO.File.Delete(oldImagePath);
+                        }
+                    }
+
+                    using (var fileStream = new FileStream(Path.Combine(licensePath, fileName), FileMode.Create))
+                    {
+                        vm.File.CopyTo(fileStream);
+                    }
+
+                    vm.User.DriverLicenseImage = @"\images\licenses\" + fileName;
                 }
                 else
                 {
-                    var existingUser = _userRepository.GetById(vm.User.UserId);
-                    if (existingUser != null)
+                    if (vm.User.UserId != 0)
                     {
-                        existingUser.Email = vm.User.Email;
-                        existingUser.Role = vm.User.Role;
-                        existingUser.UserName = vm.User.UserName;
-                        existingUser.PhoneNumber = vm.User.PhoneNumber;
-
-                        if (!string.IsNullOrEmpty(vm.User.PasswordHash))
+                        var objFromDb = _userRepository.GetById(vm.User.UserId);
+                        if (objFromDb != null)
                         {
-                            existingUser.PasswordHash = vm.User.PasswordHash;
+                            vm.User.DriverLicenseImage = objFromDb.DriverLicenseImage;
+                            _context.Entry(objFromDb).State = EntityState.Detached;
                         }
-
-                        _userRepository.Update(existingUser);
-                        _toastNotification.AddSuccessToastMessage("Kullanıcı güncellendi.");
                     }
+                }
+
+                // --- KAYDETME İŞLEMİ ---
+                if (vm.User.UserId == 0)
+                {
+                    _userRepository.Add(vm.User);
+                    _toastNotification.AddSuccessToastMessage("Kullanıcı başarıyla eklendi.");
+                }
+                else
+                {
+                    _userRepository.Update(vm.User);
+                    _toastNotification.AddSuccessToastMessage("Kullanıcı güncellendi.");
                 }
 
                 _userRepository.Save();
                 return RedirectToAction("UserList");
             }
-
-            _toastNotification.AddErrorToastMessage("Lütfen bilgileri kontrol edin.");
             return View(vm);
         }
 
@@ -298,7 +341,6 @@ namespace CarRentalPortal01.Controllers
             }
             return RedirectToAction("UserList");
         }
-
         // --- KATEGORİ İŞLEMLERİ ---
 
         public IActionResult CategoryList()
@@ -615,6 +657,205 @@ namespace CarRentalPortal01.Controllers
                 .ToList();
 
             return View(inventory);
+        }
+
+        // --- BAKIM LİSTESİ---
+        public IActionResult MaintenanceList()
+        {
+            var maintenances = _context.VehicleMaintenances
+                .Include(m => m.Vehicle)
+                .OrderBy(m => m.IsCompleted)
+                .ThenByDescending(m => m.StartDate)
+                .ToList();
+
+            return View(maintenances);
+        }
+
+        // --- BAKIMI BİTİRME (SERVİSTEN ÇIKARMA) ---
+        [HttpPost]
+        public IActionResult FinishMaintenance(int id)
+        {
+            var maintenance = _context.VehicleMaintenances.Find(id);
+            if (maintenance == null) return Json(new { success = false, message = "Kayıt bulunamadı." });
+
+            // 1. Bakımı Tamamla
+            maintenance.IsCompleted = true;
+            maintenance.EndDate = DateTime.Now;
+
+            // 2. Aracı Tekrar MÜSAİT Yap
+            var vehicle = _context.Vehicles.Find(maintenance.VehicleId);
+            if (vehicle != null)
+            {
+                vehicle.IsAvailable = true;
+                _context.Vehicles.Update(vehicle);
+            }
+
+            _context.VehicleMaintenances.Update(maintenance);
+            _context.SaveChanges();
+
+            return Json(new { success = true, message = "Bakım tamamlandı, araç tekrar müsait!" });
+        }
+
+        // --- BAKIM EKLEME MODALINI GETİR (GET) ---
+        [HttpGet]
+        public IActionResult AddMaintenance(int vehicleId)
+        {
+            VehicleMaintenance vm = new VehicleMaintenance
+            {
+                VehicleId = vehicleId,
+                StartDate = DateTime.Now 
+            };
+
+            return PartialView("_AddMaintenancePartial", vm);
+        }
+
+        // --- BAKIMI KAYDET VE ARACI PASİFE AL (POST) ---
+        [HttpGet]
+        public IActionResult AddMaintenance(int? vehicleId)
+        {
+            VehicleMaintenance vm = new VehicleMaintenance
+            {
+                StartDate = DateTime.Now
+            };
+
+            if (vehicleId.HasValue && vehicleId.Value > 0)
+            {
+                vm.VehicleId = vehicleId.Value;
+            }
+            else
+            {
+                ViewBag.VehicleList = _context.Vehicles
+                    .Select(v => new SelectListItem
+                    {
+                        Text = v.Brand + " " + v.Model + " - " + v.LicensePlate,
+                        Value = v.Id.ToString()
+                    }).ToList();
+            }
+
+            return PartialView("_AddMaintenancePartial", vm);
+        }
+
+        // --- PDF SÖZLEŞME OLUŞTURMA ---
+        public IActionResult DownloadContract(int id)
+        {
+            // 1. Kiralama Bilgilerini (User ve Vehicle dahil) Çek
+            var rental = _context.Rentals
+                .Include(r => r.User)
+                .Include(r => r.Vehicle)
+                .FirstOrDefault(r => r.Id == id);
+
+            if (rental == null) return NotFound();
+
+            // 2. PDF Dokümanı Ayarları
+            using (MemoryStream ms = new MemoryStream())
+            {
+                // A4 Boyutunda döküman oluştur
+                Document document = new Document(PageSize.A4, 25, 25, 30, 30);
+                PdfWriter writer = PdfWriter.GetInstance(document, ms);
+                document.Open();
+
+                // --- FONT AYARLARI 
+                string fontPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "arial.ttf");
+                BaseFont bf = BaseFont.CreateFont(fontPath, BaseFont.IDENTITY_H, BaseFont.NOT_EMBEDDED);
+
+                Font titleFont = new Font(bf, 18, Font.BOLD);
+                Font subTitleFont = new Font(bf, 14, Font.BOLD);
+                Font boldFont = new Font(bf, 10, Font.BOLD);
+                Font normalFont = new Font(bf, 10, Font.NORMAL);
+                Font smallFont = new Font(bf, 8, Font.ITALIC);
+
+                // --- 3. BAŞLIK VE LOGO ---
+                Paragraph title = new Paragraph("ARAÇ KİRALAMA SÖZLEŞMESİ", titleFont);
+                title.Alignment = Element.ALIGN_CENTER;
+                document.Add(title);
+
+                Paragraph companyInfo = new Paragraph("CarRental Portal A.Ş. | Müşteri Hizmetleri: 0850 123 45 67\n\n", smallFont);
+                companyInfo.Alignment = Element.ALIGN_CENTER;
+                document.Add(companyInfo);
+
+                // --- 4. TABLO: MÜŞTERİ VE ARAÇ BİLGİLERİ ---
+                PdfPTable table = new PdfPTable(2); // 2 Sütunlu Tablo
+                table.WidthPercentage = 100;
+
+                // Müşteri Bilgileri Hücresi
+                PdfPCell cellCustomer = new PdfPCell();
+                cellCustomer.Border = 0;
+                cellCustomer.AddElement(new Paragraph("MÜŞTERİ BİLGİLERİ", subTitleFont));
+                cellCustomer.AddElement(new Paragraph($"Adı Soyadı: {rental.User.UserName}", normalFont)); // UserName yerine Ad Soyad alanı varsa onu kullan
+                cellCustomer.AddElement(new Paragraph($"E-Posta: {rental.User.Email}", normalFont));
+                cellCustomer.AddElement(new Paragraph($"Telefon: {rental.User.PhoneNumber ?? "Belirtilmemiş"}", normalFont));
+                cellCustomer.AddElement(new Paragraph("\n"));
+                table.AddCell(cellCustomer);
+
+                // Araç Bilgileri Hücresi
+                PdfPCell cellVehicle = new PdfPCell();
+                cellVehicle.Border = 0;
+                cellVehicle.AddElement(new Paragraph("KİRALANAN ARAÇ", subTitleFont));
+                cellVehicle.AddElement(new Paragraph($"Marka/Model: {rental.Vehicle.Brand} {rental.Vehicle.Model}", normalFont));
+                cellVehicle.AddElement(new Paragraph($"Plaka: {rental.Vehicle.LicensePlate}", boldFont));
+                cellVehicle.AddElement(new Paragraph($"Yakıt/Vites: {rental.Vehicle.FuelType} / {rental.Vehicle.GearType}", normalFont));
+                cellVehicle.AddElement(new Paragraph("\n"));
+                table.AddCell(cellVehicle);
+
+                document.Add(table);
+
+                // --- 5. KİRALAMA DETAYLARI ---
+                PdfPTable dateTable = new PdfPTable(4);
+                dateTable.WidthPercentage = 100;
+                dateTable.SpacingBefore = 10f;
+                dateTable.SpacingAfter = 10f;
+
+                // Başlıklar
+                dateTable.AddCell(new Phrase("Alış Tarihi", boldFont));
+                dateTable.AddCell(new Phrase("İade Tarihi", boldFont));
+                dateTable.AddCell(new Phrase("Gün Sayısı", boldFont));
+                dateTable.AddCell(new Phrase("Toplam Tutar", boldFont));
+
+                // Veriler
+                var days = (rental.EndDate - rental.StartDate).TotalDays;
+                if (days < 1) days = 1;
+
+                dateTable.AddCell(new Phrase(rental.StartDate.ToString("dd.MM.yyyy"), normalFont));
+                dateTable.AddCell(new Phrase(rental.EndDate.ToString("dd.MM.yyyy"), normalFont));
+                dateTable.AddCell(new Phrase(days.ToString("N0") + " Gün", normalFont));
+                dateTable.AddCell(new Phrase(rental.TotalPrice.ToString("C2"), boldFont));
+
+                document.Add(dateTable);
+
+                // --- 6. YASAL METİN ---
+                document.Add(new Paragraph("GENEL KİRALAMA KOŞULLARI:", boldFont));
+                string legalText = "1. Kiralayan (Müşteri), aracı teslim aldığı gibi, stepne, tüm lastikler, araç belgeleri, aksesuar ve teçhizatı ile birlikte sözleşmede belirtilen gün ve saatte iade etmeyi kabul eder.\n" +
+                                   "2. Araçta meydana gelecek her türlü hasar, kaza ve çalınma durumunda Müşteri derhal kiralama şirketine ve ilgili kolluk kuvvetlerine haber vermekle yükümlüdür.\n" +
+                                   "3. Trafik cezaları, köprü ve otoyol geçiş ücretleri kiracıya aittir.\n" +
+                                   "4. Araç, sadece sözleşmede adı geçen kişiler tarafından kullanılabilir.\n" +
+                                   "5. Geçikmeli iadelerde her saat için günlük kira bedelinin 1/4'ü kadar ek ücret tahsil edilir.";
+
+                document.Add(new Paragraph(legalText, normalFont));
+                document.Add(new Paragraph("\n\n\n"));
+
+                // --- 7. İMZA ALANLARI ---
+                PdfPTable signTable = new PdfPTable(2);
+                signTable.WidthPercentage = 100;
+
+                PdfPCell signCompany = new PdfPCell(new Phrase("TESLİM EDEN YETKİLİ\n(İmza / Kaşe)", boldFont));
+                signCompany.Border = 0;
+                signCompany.HorizontalAlignment = Element.ALIGN_CENTER;
+
+                PdfPCell signCustomer = new PdfPCell(new Phrase("TESLİM ALAN MÜŞTERİ\n(İmza)", boldFont));
+                signCustomer.Border = 0;
+                signCustomer.HorizontalAlignment = Element.ALIGN_CENTER;
+
+                signTable.AddCell(signCompany);
+                signTable.AddCell(signCustomer);
+
+                document.Add(signTable);
+
+                document.Close();
+                writer.Close();
+
+                // Dosyayı İndir
+                return File(ms.ToArray(), "application/pdf", $"Sozlesme_{rental.Vehicle.LicensePlate}_{rental.Id}.pdf");
+            }
         }
     }
 }

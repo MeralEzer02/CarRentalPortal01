@@ -103,6 +103,9 @@
                                 <a asp-action="RentalUpsert" asp-route-id="@item.Id" class="btn btn-warning btn-sm">
                                     <i class="fas fa-edit"></i>
                                 </a>
+                                <a asp-action="DownloadContract" asp-route-id="@item.Id" class="btn btn-info btn-sm" target="_blank" title="Sözleşmeyi İndir">
+                                    <i class="fas fa-file-pdf"></i>
+                                </a>
                             </td>
                         </tr>
                     }

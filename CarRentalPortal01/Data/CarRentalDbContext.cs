@@ -9,12 +9,12 @@ namespace CarRentalPortal01.Data
             : base(options)
         {
         }
-
         public DbSet<User> Users { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<Rental> Rentals { get; set; }
         public DbSet<VehicleCategory> VehicleCategories { get; set; }
+        public DbSet<VehicleMaintenance> VehicleMaintenances { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -28,6 +28,10 @@ namespace CarRentalPortal01.Data
             modelBuilder.Entity<Vehicle>()
                 .Property(v => v.DailyRentalRate)
                 .HasColumnType("money");
+
+            modelBuilder.Entity<VehicleMaintenance>()
+                .Property(p => p.Cost)
+                .HasColumnType("decimal(18,2)");
 
             modelBuilder.Entity<VehicleCategory>()
                 .HasKey(vc => new { vc.VehicleId, vc.CategoryId });

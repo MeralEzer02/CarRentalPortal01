@@ -4,6 +4,7 @@ using CarRentalPortal01.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CarRentalPortal01.Migrations
 {
     [DbContext(typeof(CarRentalDbContext))]
-    partial class CarRentalDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251215131719_FixMoneyType")]
+    partial class FixMoneyType
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -78,9 +81,6 @@ namespace CarRentalPortal01.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"));
-
-                    b.Property<string>("DriverLicenseImage")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -186,7 +186,7 @@ namespace CarRentalPortal01.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("Cost")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("decimal(250,2)");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -224,7 +224,7 @@ namespace CarRentalPortal01.Migrations
                         .IsRequired();
 
                     b.HasOne("CarRentalPortal01.Models.Vehicle", "Vehicle")
-                        .WithMany("Rentals")
+                        .WithMany()
                         .HasForeignKey("VehicleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -277,8 +277,6 @@ namespace CarRentalPortal01.Migrations
             modelBuilder.Entity("CarRentalPortal01.Models.Vehicle", b =>
                 {
                     b.Navigation("Maintenances");
-
-                    b.Navigation("Rentals");
 
                     b.Navigation("VehicleCategories");
                 });

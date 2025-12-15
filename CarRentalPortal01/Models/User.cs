@@ -13,9 +13,9 @@ namespace CarRentalPortal01.Models
         public string Email { get; set; } = string.Empty;
 
         public string? PhoneNumber { get; set; }
-        [Required]
         public string PasswordHash { get; set; } = string.Empty;
         public int Role { get; set; } = 0; // 0: User, 1: Admin
+        public string? DriverLicenseImage { get; set; }
 
         public ICollection<Rental>? Rentals { get; set; }
     }

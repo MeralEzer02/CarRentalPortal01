@@ -37,9 +37,9 @@
             <table class="table table-bordered table-striped table-hover" id="VehicleList" width="100%" cellspacing="0">
                 <thead>
                     <tr>
-                        <th style="width: 110px;">Görsel</th>
+                        <th style="width: 120px;">Görsel</th>
                         <th>Araç Bilgisi</th>
-                        <th>Teknik Özellikler</th> <th>KM</th>                <th>Plaka / Yıl</th>
+                        <th>Teknik Özellikler</th>  <th>KM</th>   <th>Plaka / Yıl</th>
                         <th>Fiyat (Günlük)</th>
                         <th>Durum</th>
                         <th style="width: 100px;">İşlemler</th>
@@ -50,7 +50,12 @@
                     {
                         <tr>
                             <td>
-                                <img src="/@item.ImageUrl" width="100" height="70" style="object-fit:cover; border-radius:5px; border:1px solid #ddd;" alt="Araç" />
+                                <img src="/@item.ImageUrl" 
+                                     width="100" height="70" 
+                                     style="object-fit:cover; border-radius:5px; border:1px solid #ddd; cursor:pointer;" 
+                                     alt="Araç Detayı"
+                                     onclick="showVehicleDetails(@item.Id)" 
+                                     title="Detaylar için tıklayın" />
                             </td>
                             
                             <td>
@@ -111,18 +116,38 @@
                             </td>
                             
                             <td>
-                                <span id="status-@item.Id"
-                                      style="cursor:pointer;"
-                                      class="badge @(item.IsAvailable ? "badge-success" : "badge-danger") p-2"
-                                      onclick="toggleStatus(@item.Id)">
-                                    @(item.IsAvailable ? "Müsait" : "Kirada")
-                                </span>
-                            </td>
+                                @if (item.IsAvailable)
+                                {
+                                    <span class="badge badge-success p-2 w-100">Müsait</span>
+                                }
+                                else
+                                {
+                                    var activeMaintenance = item.Maintenances?.FirstOrDefault(m => !m.IsCompleted && m.StartDate <= DateTime.Now);
                             
+                                    if (activeMaintenance != null)
+                                    {
+                                         <span class="badge badge-warning p-2 w-100 text-dark" title="@activeMaintenance.MaintenanceType">
+                                            <i class="fas fa-tools"></i> Bakımda
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-danger p-2 w-100">
+                                            <i class="fas fa-key"></i> Kirada
+                                        </span>
+                                    }
+                                }
+                            </td>                            
                             <td>
                                 <div class="btn-group" role="group">
                                     <a asp-controller="Admin" asp-action="Upsert" asp-route-id="@item.Id" class="btn btn-warning btn-sm" title="Düzenle">
                                         <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="javascript:void(0);" 
+                                       class="btn btn-secondary btn-sm" 
+                                       onclick="openMaintenanceModal(@item.Id)" 
+                                       title="Bakıma Al">
+                                        <i class="fas fa-tools"></i>
                                     </a>
                                     <a href="javascript:void(0);"
                                        class="btn btn-danger btn-sm"
@@ -139,6 +164,25 @@
         </div>
     </div>
 </div>
+<div class="modal fade" id="detailModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content" id="detailModalContent">
+            <div class="text-center p-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Yükleniyor...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="maintenanceModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" id="maintenanceModalContent">
+            </div>
+    </div>
+</div>
+
 
 @section Scripts {
     <script src="~/Admin/vendor/datatables/jquery.dataTables.min.js"></script>
@@ -157,32 +201,6 @@
             });
         });
 
-        // Durum Değiştirme (Ajax)
-        function toggleStatus(id) {
-            $.ajax({
-                url: '/Admin/ToggleStatus',
-                type: 'POST',
-                data: { id: id },
-                success: function (response) {
-                    if (response.success) {
-                        var badge = $("#status-" + id);
-                        if (response.isAvailable) {
-                            badge.removeClass("badge-danger").addClass("badge-success");
-                            badge.text("Müsait");
-                        } else {
-                            badge.removeClass("badge-success").addClass("badge-danger");
-                            badge.text("Kirada");
-                        }
-                    } else {
-                        alert("Hata: " + response.message);
-                    }
-                },
-                error: function () {
-                    alert("Sunucu hatası.");
-                }
-            });
-        }
-
         // Silme İşlemi (SweetAlert)
         function deleteVehicle(url, modelName) {
             Swal.fire({
@@ -200,5 +218,65 @@
                 }
             })
         }
+
+        // Araç Detaylarını Getiren Fonksiyon (AJAX)
+    function showVehicleDetails(id) {
+        // Modalı aç
+        $('#detailModal').modal('show');
+        // İçini temizle ve yükleniyor koy
+        $('#detailModalContent').html('<div class="text-center p-5"><div class="spinner-border text-primary" role="status"></div></div>');
+
+        // Sunucudan veriyi iste
+        $.ajax({
+            url: '/Admin/GetVehicleDetails/' + id,
+            type: 'GET',
+            success: function(response) {
+                // Gelen HTML'i modal içine bas
+                $('#detailModalContent').html(response);
+            },
+            error: function() {
+                $('#detailModalContent').html('<div class="alert alert-danger m-3">Veriler yüklenirken hata oluştu.</div>');
+            }
+        });
+    }
+
+    // Bakım Modalını Açan Fonksiyon
+    function openMaintenanceModal(id) {
+        $('#maintenanceModal').modal('show');
+        $('#maintenanceModalContent').html('<div class="p-3 text-center"><div class="spinner-border text-warning"></div> Yükleniyor...</div>');
+
+        $.ajax({
+            url: '/Admin/AddMaintenance?vehicleId=' + id,
+            type: 'GET',
+            success: function (res) {
+                $('#maintenanceModalContent').html(res);
+            }
+        });
+    }
+
+    // Bakımı Kaydeden Fonksiyon
+    function saveMaintenance() {
+        var formData = $('#maintenanceForm').serialize();
+
+        $.ajax({
+            url: '/Admin/AddMaintenance',
+            type: 'POST',
+            data: formData,
+            success: function (res) {
+                if (res.success) {
+                    $('#maintenanceModal').modal('hide');
+                    Swal.fire('Başarılı!', res.message, 'success').then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Hata!', 'Bir sorun oluştu.', 'error');
+                }
+            },
+            error: function () {
+                Swal.fire('Hata!', 'Sunucu hatası.', 'error');
+            }
+        });
+    }
+
     </script>
 }

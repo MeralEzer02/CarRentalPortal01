@@ -1,0 +1,193 @@
+﻿@model IEnumerable<CarRentalPortal01.Models.VehicleMaintenance>
+
+@{
+    ViewData["Title"] = "Bakım ve Servis Takibi";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h1 class="h3 mb-4 text-gray-800">Filo Bakım Yönetimi</h1>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">Servis Geçmişi ve Aktif Bakımlar</h6>
+
+        <div>
+            <button class="btn btn-primary btn-sm mr-2" onclick="openMaintenanceModal()">
+                <i class="fas fa-plus"></i> Yeni Bakım Girişi
+            </button>
+
+            <span class="badge badge-warning p-2">
+                <i class="fas fa-tools"></i> Servisteki Araçlar: @Model.Count(x => !x.IsCompleted)
+            </span>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped" id="MaintenanceTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Araç Bilgisi</th>
+                        <th>Bakım Türü</th>
+                        <th>Giriş / Çıkış Tarihi</th>
+                        <th>Maliyet</th>
+                        <th>Açıklama</th>
+                        <th>Durum</th>
+                        <th>İşlem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>
+                                @if (item.Vehicle != null)
+                                {
+                                    <div class="d-flex align-items-center">
+                                        <img src="/@item.Vehicle.ImageUrl" style="width: 90px; height: 60px; object-fit: cover; border-radius: 4px; margin-right: 8px;" />
+                                        <div>
+                                            <span class="badge badge-primary">@item.Vehicle.Brand</span>
+                                            <span class="small d-block font-weight-bold">@item.Vehicle.Model</span>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-danger">Araç Silinmiş</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge badge-light border">@item.MaintenanceType</span>
+                            </td>
+                            <td>
+                                <div><i class="fas fa-arrow-right text-danger mr-1"></i> @item.StartDate.ToString("dd.MM.yyyy")</div>
+                                @if (item.EndDate.HasValue)
+                                {
+                                    <div><i class="fas fa-arrow-left text-success mr-1"></i> @item.EndDate.Value.ToString("dd.MM.yyyy")</div>
+                                }
+                                else
+                                {
+                                    <div class="text-muted small ml-3">- Devam Ediyor -</div>
+                                }
+                            </td>
+                            <td class="font-weight-bold">
+                                @item.Cost.ToString("C2")
+                            </td>
+                            <td>
+                                <span title="@item.Description">
+                                    @(item.Description.Length > 30 ? item.Description.Substring(0, 30) + "..." : item.Description)
+                                </span>
+                            </td>
+                            <td>
+                                @if (item.IsCompleted)
+                                {
+                                    <span class="badge badge-success w-100 p-2">Tamamlandı</span>
+                                }
+                                else if (item.StartDate > DateTime.Now)
+                                {
+                                    <span class="badge badge-info w-100 p-2">
+                                        <i class="fas fa-clock"></i> Planlandı (Bekleniyor)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-warning w-100 p-2 text-dark">Serviste</span>
+                                }
+                            </td>
+                            <td>
+                                @if (!item.IsCompleted)
+                                {
+                                    <button class="btn btn-success btn-sm w-100" onclick="finishMaintenance(@item.Id)">
+                                        <i class="fas fa-check"></i> Bitir
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-secondary btn-sm w-100" disabled>
+                                        <i class="fas fa-lock"></i> Kapalı
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="maintenanceModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" id="maintenanceModalContent">
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/Admin/vendor/datatables/jquery.dataTables.min.js"></script>
+    <script src="~/Admin/vendor/datatables/dataTables.bootstrap4.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#MaintenanceTable').DataTable({
+                 "language": { "url": "//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json" },
+                 "order": [[5, "desc"]] // Duruma göre sırala (Servistekiler üstte)
+            });
+        });
+
+        function finishMaintenance(id) {
+            Swal.fire({
+                title: 'Bakım Tamamlandı mı?',
+                text: "Araç servisten çıkarılacak ve tekrar 'Müsait' durumuna geçecek.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Evet, Bitir!',
+                cancelButtonText: 'İptal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.post('/Admin/FinishMaintenance', { id: id }, function(res) {
+                        if (res.success) {
+                            Swal.fire('Harika!', res.message, 'success').then(() => location.reload());
+                        } else {
+                            Swal.fire('Hata', res.message, 'error');
+                        }
+                    });
+                }
+            })
+        }
+
+            // ID parametresi opsiyonel oldu. Eğer boş gelirse Controller araç listesini gönderecek.
+        function openMaintenanceModal(id) {
+            var url = '/Admin/AddMaintenance';
+            if(id) url += '?vehicleId=' + id; // ID varsa ekle
+
+            $('#maintenanceModal').modal('show');
+            $('#maintenanceModalContent').html('<div class="p-3 text-center"><div class="spinner-border text-warning"></div> Yükleniyor...</div>');
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function (res) {
+                    $('#maintenanceModalContent').html(res);
+                }
+            });
+        }
+
+        function saveMaintenance() {
+            var formData = $('#maintenanceForm').serialize();
+            $.ajax({
+                url: '/Admin/AddMaintenance',
+                type: 'POST',
+                data: formData,
+                success: function (res) {
+                    if (res.success) {
+                        $('#maintenanceModal').modal('hide');
+                        Swal.fire('Başarılı!', res.message, 'success').then(() => location.reload());
+                    } else {
+                        Swal.fire('Hata!', 'Bir sorun oluştu.', 'error');
+                    }
+                }
+            });
+        }
+    </script>
+}

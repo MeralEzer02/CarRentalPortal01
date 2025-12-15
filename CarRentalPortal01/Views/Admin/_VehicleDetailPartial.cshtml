@@ -1,0 +1,179 @@
+﻿@model CarRentalPortal01.Models.Vehicle
+
+<div class="modal-header bg-primary text-white">
+    <h5 class="modal-title">
+        <i class="fas fa-car mr-2"></i> @Model.Brand @Model.Model
+        <span class="badge badge-light text-primary ml-2" style="font-size: 0.8em;">@Model.LicensePlate</span>
+    </h5>
+    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Kapat">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+
+<div class="modal-body">
+
+    <ul class="nav nav-tabs mb-3" id="vehicleTabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" id="info-tab" data-toggle="tab" href="#info" role="tab">
+                <i class="fas fa-info-circle"></i> Genel Bilgiler
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="rentals-tab" data-toggle="tab" href="#rentals" role="tab">
+                <i class="fas fa-history"></i> Kiralama Geçmişi
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="maintenance-tab" data-toggle="tab" href="#maintenance" role="tab">
+                <i class="fas fa-tools"></i> Bakım Geçmişi
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="vehicleTabsContent">
+
+        <div class="tab-pane fade show active" id="info" role="tabpanel">
+            <div class="row">
+                <div class="col-md-5 text-center">
+                    <img src="/@Model.ImageUrl" class="img-fluid rounded shadow-sm border mb-2" style="max-height: 200px; object-fit: cover;" alt="Araç Resmi" />
+
+                    <h4 class="font-weight-bold text-success mt-2">@Model.DailyRentalRate.ToString("C0") <small class="text-muted">/Gün</small></h4>
+
+                    <span class="badge @(Model.IsAvailable ? "badge-success" : "badge-danger") p-2 w-100" style="font-size: 1rem;">
+                        @(Model.IsAvailable ? "MÜSAİT" : "KİRADA / BAKIMDA")
+                    </span>
+                </div>
+                <div class="col-md-7">
+                    <table class="table table-sm table-striped">
+                        <tr><th width="40%">Yıl:</th><td>@Model.Year</td></tr>
+                        <tr><th>Kilometre:</th><td>@(Model.Kilometer.HasValue? Model.Kilometer.Value.ToString("N0") : "-") km</td></tr>
+                        <tr><th>Yakıt:</th><td>@Model.FuelType</td></tr>
+                        <tr><th>Vites:</th><td>@Model.GearType</td></tr>
+                        <tr><th>Renk:</th><td>@Model.Color</td></tr>
+                        <tr><th>Grup Kodu:</th><td>@(Model.VariantGroupId ?? "-")</td></tr>
+                        <tr>
+                            <th>Kategoriler:</th>
+                            <td>
+                                @if (Model.VehicleCategories != null)
+                                {
+                                    foreach (var c in Model.VehicleCategories)
+                                    {
+                                        <span class="badge badge-info mr-1">@c.Category?.Name</span>
+                                    }
+                                }
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="rentals" role="tabpanel">
+            @if (Model.Rentals != null && Model.Rentals.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered table-sm text-center">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Kullanıcı</th>
+                                <th>Başlangıç</th>
+                                <th>Bitiş</th>
+                                <th>Toplam Tutar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var rent in Model.Rentals.OrderByDescending(x => x.StartDate))
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="mr-2">
+                                                <i class="fas fa-user-circle fa-2x text-gray-300"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-weight-bold text-dark">
+                                                    @(rent.User != null ? rent.User.UserName : "Silinmiş Kullanıcı")
+                                                </div>
+                                                <div class="small text-muted">
+                                                    <i class="fas fa-id-card fa-fw"></i> @rent.UserId)
+                                                </div>
+                                                <div class="small text-muted">
+                                                    <i class="fas fa-envelope fa-fw"></i> @(rent.User?.Email ?? "-")
+                                                </div>                                               
+                                                @if (rent.User != null)
+                                                {
+                                                    <div class="small text-muted">
+                                                        <i class="fas fa-phone fa-fw"></i> @(rent.User.PhoneNumber ?? "-")
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>@rent.StartDate.ToString("dd.MM.yyyy")</td>
+                                    <td>@rent.EndDate.ToString("dd.MM.yyyy")</td>
+                                    <td class="text-success font-weight-bold">@rent.TotalPrice.ToString("C2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> Bu araca ait kiralama geçmişi bulunamadı.</div>
+            }
+        </div>
+
+        <div class="tab-pane fade" id="maintenance" role="tabpanel">
+            @if (Model.Maintenances != null && Model.Maintenances.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered table-sm">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Bakım Türü</th>
+                                <th>Tarih</th>
+                                <th>Açıklama</th>
+                                <th>Maliyet</th>
+                                <th>Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var m in Model.Maintenances.OrderByDescending(x => x.StartDate))
+                            {
+                                <tr>
+                                    <td><span class="font-weight-bold text-dark">@m.MaintenanceType</span></td>
+                                    <td>
+                                        @m.StartDate.ToShortDateString()
+                                        @(m.EndDate.HasValue ? " - " + m.EndDate.Value.ToShortDateString() : "")
+                                    </td>
+                                    <td><small>@m.Description</small></td>
+                                    <td class="text-danger font-weight-bold">@m.Cost.ToString("C2")</td>
+                                    <td>
+                                        @if (m.IsCompleted)
+                                        {
+                                            <span class="badge badge-success">Tamamlandı</span>
+                                        }
+                                        else
+                                        {
+
+                                            <span class="badge badge-warning">Serviste</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info"><i class="fas fa-info-circle"></i> Bu araca ait henüz bir bakım kaydı girilmemiş.</div>
+            }
+        </div>
+
+    </div>
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-dismiss="modal">Kapat</button>
+</div>
