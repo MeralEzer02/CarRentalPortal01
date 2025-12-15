@@ -1,0 +1,76 @@
+﻿@model IEnumerable<CarRentalPortal01.Models.SystemLog>
+
+@{
+    ViewData["Title"] = "Sistem Kayıtları (Loglar)";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="card shadow mb-4 border-left-danger">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-user-secret mr-2"></i> Güvenlik ve İşlem Kayıtları (Audit Logs)
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-sm" id="LogTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Tarih</th>
+                        <th>Kullanıcı</th>
+                        <th>İşlem Türü</th>
+                        <th>Açıklama</th>
+                        <th>IP Adresi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var log in Model)
+                    {
+                        <tr>
+                            <td style="width: 150px;">@log.LogDate.ToString("dd.MM.yyyy HH:mm")</td>
+                            <td>
+                                <span class="font-weight-bold">@log.UserEmail</span>
+                            </td>
+                            <td>
+                                @if (log.ActionType == "Silme")
+                                {
+                                    <span class="badge badge-danger">Silme</span>
+                                }
+                                else if (log.ActionType == "Ekleme")
+                                {
+
+                                    <span class="badge badge-success">Ekleme</span>
+                                }
+                                else if (log.ActionType == "Güncelleme")
+                                {
+
+                                    <span class="badge badge-warning">Güncelleme</span>
+                                }
+                                else
+                                {
+
+                                    <span class="badge badge-secondary">@log.ActionType</span>
+                                }
+                            </td>
+                            <td>@log.Description</td>
+                            <td class="small text-muted">@log.IpAddress</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/Admin/vendor/datatables/jquery.dataTables.min.js"></script>
+    <script src="~/Admin/vendor/datatables/dataTables.bootstrap4.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#LogTable').DataTable({
+                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json" },
+                "order": [[0, "desc"]] // Tarihe göre tersten sırala
+            });
+        });
+    </script>
+}

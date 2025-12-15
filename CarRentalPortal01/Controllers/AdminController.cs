@@ -12,7 +12,7 @@ using System.IO;
 
 namespace CarRentalPortal01.Controllers
 {
-    [Authorize(Roles = "1")]
+    [Authorize(Roles = "1,2")]
     public class AdminController : Controller
     {
         private readonly IGenericRepository<Vehicle> _vehicleRepository;
@@ -71,7 +71,7 @@ namespace CarRentalPortal01.Controllers
 
             return View(model);
         }
-
+        [Authorize(Roles = "2")]
         public IActionResult Profile()
         {
             var userEmail = User.Identity?.Name;
@@ -102,6 +102,7 @@ namespace CarRentalPortal01.Controllers
             return View(rentals);
         }
 
+        [Authorize(Roles = "2")]
         public IActionResult UserList()
         {
             var users = _userRepository.GetAll("Rentals.Vehicle");
@@ -169,11 +170,15 @@ namespace CarRentalPortal01.Controllers
                 {
                     _vehicleRepository.Add(vm.Vehicle);
                     _toastNotification.AddSuccessToastMessage("Araç eklendi.");
+
+                    LogToDb("Ekleme", $"Yeni araç eklendi: {vm.Vehicle.Brand} {vm.Vehicle.Model} ({vm.Vehicle.LicensePlate})");
                 }
                 else
                 {
                     _vehicleRepository.Update(vm.Vehicle);
                     _toastNotification.AddSuccessToastMessage("Araç güncellendi.");
+
+                    LogToDb("Güncelleme", $"Araç güncellendi: {vm.Vehicle.Brand} {vm.Vehicle.Model} ({vm.Vehicle.LicensePlate})");
                 }
                 _vehicleRepository.Save();
 
@@ -206,19 +211,24 @@ namespace CarRentalPortal01.Controllers
             _toastNotification.AddErrorToastMessage("Bilgileri kontrol edin.");
             return View(vm);
         }
-
+        [Authorize(Roles = "2")]
         public IActionResult Delete(int id)
         {
             var vehicle = _vehicleRepository.GetById(id);
             if (vehicle != null)
             {
+                string vehicleName = $"{vehicle.Brand} {vehicle.Model} ({vehicle.LicensePlate})";
                 _vehicleRepository.Remove(vehicle);
                 _vehicleRepository.Save();
+
+                LogToDb("Silme", $"Araç silindi: {vehicleName}");
+
                 _toastNotification.AddWarningToastMessage("Araç başarıyla silindi.");
             }
             return RedirectToAction("VehicleList");
         }
 
+        [Authorize(Roles = "2")]
         [HttpPost]
         public IActionResult ToggleStatus(int id)
         {
@@ -238,6 +248,7 @@ namespace CarRentalPortal01.Controllers
 
         // --- KULLANICI İŞLEMLERİ ---
         [HttpGet]
+        [Authorize(Roles = "2")]
         public IActionResult UserUpsert(int? id)
         {
             UserUpsertViewModel vm = new UserUpsertViewModel();
@@ -259,89 +270,98 @@ namespace CarRentalPortal01.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "2")]
         public IActionResult UserUpsert(UserUpsertViewModel vm)
         {
+            // 1. Manuel Şifre Kontrolü (Yeni Kullanıcı ise şifre şart)
             if (vm.User.UserId == 0 && string.IsNullOrEmpty(vm.User.PasswordHash))
             {
-                ModelState.AddModelError("User.PasswordHash", "Yeni kullanıcı oluştururken şifre girmek zorundasınız.");
+                ModelState.AddModelError("User.PasswordHash", "Yeni kullanıcı için şifre zorunludur.");
             }
 
-            if (ModelState.IsValid)
+            // Validasyon Hatası Varsa hemen dön
+            if (!ModelState.IsValid)
             {
-                // --- DOSYA YÜKLEME İŞLEMİ ---
+                return View(vm);
+            }
+
+            // --- YENİ KULLANICI EKLEME ---
+            if (vm.User.UserId == 0)
+            {
+                // Dosya var mı?
                 if (vm.File != null)
                 {
-                    string wwwRootPath = _webHostEnvironment.WebRootPath;
-                    string fileName = Guid.NewGuid().ToString() + Path.GetExtension(vm.File.FileName);
-                    string licensePath = Path.Combine(wwwRootPath, @"images\licenses");
-
-                    if (!Directory.Exists(licensePath)) Directory.CreateDirectory(licensePath);
-
-                    if (vm.User.UserId != 0 && !string.IsNullOrEmpty(vm.User.DriverLicenseImage))
-                    {
-                        var oldImagePath = Path.Combine(wwwRootPath, vm.User.DriverLicenseImage.TrimStart('\\'));
-                        if (System.IO.File.Exists(oldImagePath))
-                        {
-                            System.IO.File.Delete(oldImagePath);
-                        }
-                    }
-
-                    using (var fileStream = new FileStream(Path.Combine(licensePath, fileName), FileMode.Create))
-                    {
-                        vm.File.CopyTo(fileStream);
-                    }
-
-                    vm.User.DriverLicenseImage = @"\images\licenses\" + fileName;
-                }
-                else
-                {
-                    if (vm.User.UserId != 0)
-                    {
-                        var objFromDb = _userRepository.GetById(vm.User.UserId);
-                        if (objFromDb != null)
-                        {
-                            vm.User.DriverLicenseImage = objFromDb.DriverLicenseImage;
-                            _context.Entry(objFromDb).State = EntityState.Detached;
-                        }
-                    }
+                    string fileName = UploadFile(vm.File);
+                    vm.User.DriverLicenseImage = fileName;
                 }
 
-                // --- KAYDETME İŞLEMİ ---
-                if (vm.User.UserId == 0)
-                {
-                    _userRepository.Add(vm.User);
-                    _toastNotification.AddSuccessToastMessage("Kullanıcı başarıyla eklendi.");
-                }
-                else
-                {
-                    _userRepository.Update(vm.User);
-                    _toastNotification.AddSuccessToastMessage("Kullanıcı güncellendi.");
-                }
-
+                _userRepository.Add(vm.User);
                 _userRepository.Save();
-                return RedirectToAction("UserList");
+                _toastNotification.AddSuccessToastMessage("Kullanıcı oluşturuldu.");
             }
-            return View(vm);
-        }
-
-        public IActionResult DeleteUser(int id)
-        {
-            var user = _userRepository.GetById(id);
-            if (user != null)
+            // --- MEVCUT KULLANICIYI GÜNCELLEME (Sorunlu kısım burasıydı) ---
+            else
             {
-                if (User.Identity.Name == user.Email)
+                // A) Veritabanındaki GERÇEK kullanıcıyı bul
+                // AsNoTracking() kullanmıyoruz çünkü üzerinde değişiklik yapıp kaydedeceğiz.
+                var objFromDb = _userRepository.GetById(vm.User.UserId);
+
+                if (objFromDb == null) return NotFound();
+
+                // B) Formdan gelen verileri, DB'den gelen nesneye aktar (Mapping)
+                objFromDb.UserName = vm.User.UserName;
+                objFromDb.Email = vm.User.Email;
+                objFromDb.PhoneNumber = vm.User.PhoneNumber;
+                objFromDb.Role = vm.User.Role;
+
+                // C) Şifre alanı doluysa güncelle, boşsa ESKİ ŞİFRE KALSIN
+                if (!string.IsNullOrEmpty(vm.User.PasswordHash))
                 {
-                    _toastNotification.AddErrorToastMessage("Kendi hesabınızı silemezsiniz!");
-                    return RedirectToAction("UserList");
+                    objFromDb.PasswordHash = vm.User.PasswordHash;
                 }
 
-                _userRepository.Remove(user);
+                // D) Resim Yükleme İşlemi
+                if (vm.File != null)
+                {
+                    // Eski resmi sil
+                    if (!string.IsNullOrEmpty(objFromDb.DriverLicenseImage))
+                    {
+                        string oldPath = Path.Combine(_webHostEnvironment.WebRootPath, objFromDb.DriverLicenseImage.TrimStart('\\'));
+                        if (System.IO.File.Exists(oldPath)) System.IO.File.Delete(oldPath);
+                    }
+
+                    // Yeni resmi yükle ve yola yaz
+                    string fileName = UploadFile(vm.File);
+                    objFromDb.DriverLicenseImage = fileName;
+                }
+                // (Else yazmıyoruz, dosya yoksa eski resim zaten objFromDb'de duruyor)
+
+                // E) Güncellenmiş nesneyi kaydet
+                _userRepository.Update(objFromDb);
                 _userRepository.Save();
-                _toastNotification.AddWarningToastMessage("Kullanıcı silindi.");
+                _toastNotification.AddSuccessToastMessage("Kullanıcı ve resim güncellendi.");
             }
+
             return RedirectToAction("UserList");
         }
-        // --- KATEGORİ İŞLEMLERİ ---
+
+        // --- YARDIMCI METOD ---
+        [Authorize(Roles = "2")]
+        private string UploadFile(IFormFile file)
+        {
+            string wwwRootPath = _webHostEnvironment.WebRootPath;
+            string fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+            string licensePath = Path.Combine(wwwRootPath, @"images\licenses");
+
+            if (!Directory.Exists(licensePath)) Directory.CreateDirectory(licensePath);
+
+            using (var fileStream = new FileStream(Path.Combine(licensePath, fileName), FileMode.Create))
+            {
+                file.CopyTo(fileStream);
+            }
+
+            return @"\images\licenses\" + fileName;
+        }        // --- KATEGORİ İŞLEMLERİ ---
 
         public IActionResult CategoryList()
         {
@@ -428,6 +448,7 @@ namespace CarRentalPortal01.Controllers
             return View(vm);
         }
 
+        [Authorize(Roles = "2")]
         public IActionResult DeleteCategory(int id)
         {
             var category = _categoryRepository.GetAll(c => c.VehicleCategories)
@@ -562,12 +583,14 @@ namespace CarRentalPortal01.Controllers
         }
 
         // --- TAKVİM (SCHEDULER) İŞLEMLERİ ---
+        [Authorize(Roles = "2")]
         public IActionResult Scheduler()
         {
             return View();
         }
 
         [HttpGet]
+        [Authorize(Roles = "2")]
         public IActionResult GetCalendarEvents()
         {
             var rentals = _rentalRepository.GetAll("Vehicle", "User");
@@ -590,6 +613,7 @@ namespace CarRentalPortal01.Controllers
         }
 
         // --- RAPORLAMA İŞLEMLERİ ---
+        [Authorize(Roles = "2")]
         public IActionResult Reports()
         {
             var rentals = _rentalRepository.GetAll(r => r.Vehicle);
@@ -632,7 +656,7 @@ namespace CarRentalPortal01.Controllers
 
 
         // --- STOK DURUMU / ENVANTER RAPORU ---
-
+        [Authorize(Roles = "2")]
         public IActionResult Inventory()
         {
             var allVehicles = _vehicleRepository.GetAll();
@@ -660,6 +684,7 @@ namespace CarRentalPortal01.Controllers
         }
 
         // --- BAKIM LİSTESİ---
+        [Authorize(Roles = "2")]
         public IActionResult MaintenanceList()
         {
             var maintenances = _context.VehicleMaintenances
@@ -672,6 +697,7 @@ namespace CarRentalPortal01.Controllers
         }
 
         // --- BAKIMI BİTİRME (SERVİSTEN ÇIKARMA) ---
+        [Authorize(Roles = "2")]
         [HttpPost]
         public IActionResult FinishMaintenance(int id)
         {
@@ -698,6 +724,7 @@ namespace CarRentalPortal01.Controllers
 
         // --- BAKIM EKLEME MODALINI GETİR (GET) ---
         [HttpGet]
+        [Authorize(Roles = "2")]
         public IActionResult AddMaintenance(int vehicleId)
         {
             VehicleMaintenance vm = new VehicleMaintenance
@@ -711,6 +738,7 @@ namespace CarRentalPortal01.Controllers
 
         // --- BAKIMI KAYDET VE ARACI PASİFE AL (POST) ---
         [HttpGet]
+        [Authorize(Roles = "2")]
         public IActionResult AddMaintenance(int? vehicleId)
         {
             VehicleMaintenance vm = new VehicleMaintenance
@@ -736,6 +764,7 @@ namespace CarRentalPortal01.Controllers
         }
 
         // --- PDF SÖZLEŞME OLUŞTURMA ---
+        [Authorize(Roles = "2")]
         public IActionResult DownloadContract(int id)
         {
             // 1. Kiralama Bilgilerini (User ve Vehicle dahil) Çek
@@ -856,6 +885,35 @@ namespace CarRentalPortal01.Controllers
                 // Dosyayı İndir
                 return File(ms.ToArray(), "application/pdf", $"Sozlesme_{rental.Vehicle.LicensePlate}_{rental.Id}.pdf");
             }
+        }
+        // --- LOGLAMA YARDIMCISI (Private Method) ---
+        [Authorize(Roles = "2")]
+        private void LogToDb(string actionType, string description)
+        {
+            try
+            {
+                var log = new SystemLog
+                {
+                    UserEmail = User.Identity?.Name ?? "Sistem/Bilinmeyen",
+                    ActionType = actionType,
+                    Description = description,
+                    LogDate = DateTime.Now,
+                    IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Localhost"
+                };
+
+                _context.SystemLogs.Add(log);
+                _context.SaveChanges();
+            }
+            catch
+            {
+            }
+        }
+        // --- LOG GEÇMİŞİ SAYFASI ---
+        [Authorize(Roles = "2")]
+        public IActionResult SystemLogs()
+        {
+            var logs = _context.SystemLogs.OrderByDescending(x => x.LogDate).ToList();
+            return View(logs);
         }
     }
 }

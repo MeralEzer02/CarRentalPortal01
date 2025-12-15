@@ -13,7 +13,7 @@ namespace CarRentalPortal01.Models
         public string Email { get; set; } = string.Empty;
 
         public string? PhoneNumber { get; set; }
-        public string PasswordHash { get; set; } = string.Empty;
+        public string? PasswordHash { get; set; } = string.Empty;
         public int Role { get; set; } = 0; // 0: User, 1: Admin
         public string? DriverLicenseImage { get; set; }
 

@@ -64,8 +64,9 @@
                                 <div class="form-group col-md-6">
                                     <label class="font-weight-bold small text-muted">Yetki Rolü</label>
                                     <select asp-for="User.Role" class="form-control custom-select">
-                                        <option value="User">Standart Kullanıcı (Müşteri)</option>
-                                        <option value="Admin">Yönetici (Admin)</option>
+                                        <option value="0">Müşteri (Standart Kullanıcı)</option>
+                                        <option value="1">Personel (Kısıtlı Yetki)</option>
+                                        <option value="2">Patron (Süper Admin)</option>
                                     </select>
                                 </div>
                             </div>

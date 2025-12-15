@@ -53,17 +53,20 @@
                     <span>Araç Listesi</span>
                 </a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link" asp-controller="Admin" asp-action="Inventory">
+            @if (User.IsInRole("2"))
+            {
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Admin" asp-action="Inventory">
                     <i class="fas fa-fw fa-boxes"></i> <span>Stok Durumu</span>
-                </a>
-            </li>
+                    </a>
+                </li>
             <li class="nav-item">
                 <a class="nav-link" asp-controller="Admin" asp-action="MaintenanceList">
                     <i class="fas fa-fw fa-wrench"></i>
                     <span>Bakım & Servis</span>
                 </a>
             </li>
+            }
             <li class="nav-item">
                 <a class="nav-link" href="/Admin/CategoryList">
                     <i class="fas fa-fw fa-tags"></i>
@@ -76,24 +79,33 @@
                     <span>Kiralama İşlemleri</span>
                 </a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link" href="/Admin/Scheduler">
-                    <i class="fas fa-fw fa-calendar-alt"></i>
-                    <span>Kiralama Takvimi</span>
+                        @if (User.IsInRole("2"))
+            {
+                <li class="nav-item">
+                    <a class="nav-link" href="/Admin/Scheduler">
+                        <i class="fas fa-fw fa-calendar-alt"></i>
+                        <span>Kiralama Takvimi</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/Admin/Reports">
+                        <i class="fas fa-fw fa-chart-line"></i>
+                        <span>Raporlar</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/Admin/UserList">
+                        <i class="fas fa-fw fa-users"></i>
+                        <span>Kullanıcılar</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Admin" asp-action="SystemLogs">
+                    <i class="fas fa-fw fa-file-signature"></i>
+                    <span>İşlem Logları</span>
                 </a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link" href="/Admin/Reports">
-                    <i class="fas fa-fw fa-chart-line"></i>
-                    <span>Raporlar</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="/Admin/UserList">
-                    <i class="fas fa-fw fa-users"></i>
-                    <span>Kullanıcılar</span>
-                </a>
-            </li>
+            }
 
             <hr class="sidebar-divider d-none d-md-block">
 
