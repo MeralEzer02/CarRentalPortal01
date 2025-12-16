@@ -71,7 +71,7 @@ namespace CarRentalPortal01.Controllers
 
             return View(model);
         }
-        [Authorize(Roles = "2")]
+
         public IActionResult Profile()
         {
             var userEmail = User.Identity?.Name;
@@ -273,22 +273,18 @@ namespace CarRentalPortal01.Controllers
         [Authorize(Roles = "2")]
         public IActionResult UserUpsert(UserUpsertViewModel vm)
         {
-            // 1. Manuel Şifre Kontrolü (Yeni Kullanıcı ise şifre şart)
             if (vm.User.UserId == 0 && string.IsNullOrEmpty(vm.User.PasswordHash))
             {
                 ModelState.AddModelError("User.PasswordHash", "Yeni kullanıcı için şifre zorunludur.");
             }
 
-            // Validasyon Hatası Varsa hemen dön
             if (!ModelState.IsValid)
             {
                 return View(vm);
             }
 
-            // --- YENİ KULLANICI EKLEME ---
             if (vm.User.UserId == 0)
             {
-                // Dosya var mı?
                 if (vm.File != null)
                 {
                     string fileName = UploadFile(vm.File);
@@ -299,44 +295,37 @@ namespace CarRentalPortal01.Controllers
                 _userRepository.Save();
                 _toastNotification.AddSuccessToastMessage("Kullanıcı oluşturuldu.");
             }
-            // --- MEVCUT KULLANICIYI GÜNCELLEME (Sorunlu kısım burasıydı) ---
+            // --- MEVCUT KULLANICIYI GÜNCELLEME ---
             else
             {
-                // A) Veritabanındaki GERÇEK kullanıcıyı bul
-                // AsNoTracking() kullanmıyoruz çünkü üzerinde değişiklik yapıp kaydedeceğiz.
                 var objFromDb = _userRepository.GetById(vm.User.UserId);
 
                 if (objFromDb == null) return NotFound();
 
-                // B) Formdan gelen verileri, DB'den gelen nesneye aktar (Mapping)
                 objFromDb.UserName = vm.User.UserName;
                 objFromDb.Email = vm.User.Email;
                 objFromDb.PhoneNumber = vm.User.PhoneNumber;
                 objFromDb.Role = vm.User.Role;
 
-                // C) Şifre alanı doluysa güncelle, boşsa ESKİ ŞİFRE KALSIN
+                objFromDb.Salary = vm.User.Salary;
+
                 if (!string.IsNullOrEmpty(vm.User.PasswordHash))
                 {
                     objFromDb.PasswordHash = vm.User.PasswordHash;
                 }
 
-                // D) Resim Yükleme İşlemi
                 if (vm.File != null)
                 {
-                    // Eski resmi sil
                     if (!string.IsNullOrEmpty(objFromDb.DriverLicenseImage))
                     {
                         string oldPath = Path.Combine(_webHostEnvironment.WebRootPath, objFromDb.DriverLicenseImage.TrimStart('\\'));
                         if (System.IO.File.Exists(oldPath)) System.IO.File.Delete(oldPath);
                     }
 
-                    // Yeni resmi yükle ve yola yaz
                     string fileName = UploadFile(vm.File);
                     objFromDb.DriverLicenseImage = fileName;
                 }
-                // (Else yazmıyoruz, dosya yoksa eski resim zaten objFromDb'de duruyor)
 
-                // E) Güncellenmiş nesneyi kaydet
                 _userRepository.Update(objFromDb);
                 _userRepository.Save();
                 _toastNotification.AddSuccessToastMessage("Kullanıcı ve resim güncellendi.");
@@ -361,7 +350,9 @@ namespace CarRentalPortal01.Controllers
             }
 
             return @"\images\licenses\" + fileName;
-        }        // --- KATEGORİ İŞLEMLERİ ---
+        }
+        // --- KATEGORİ İŞLEMLERİ ---
+
 
         public IActionResult CategoryList()
         {
@@ -1005,31 +996,95 @@ namespace CarRentalPortal01.Controllers
         [Authorize(Roles = "2")]
         public IActionResult ExpenseList()
         {
-            var expenses = _context.Expenses.OrderByDescending(x => x.Date).ToList();
+            List<FinancialItemViewModel> fullList = new List<FinancialItemViewModel>();
+
+            // 1. MANUEL GİDERLERİ EKLE
+            var manualExpenses = _context.Expenses.ToList();
+            foreach (var item in manualExpenses)
+            {
+                fullList.Add(new FinancialItemViewModel
+                {
+                    Title = item.Title,
+                    Amount = item.Amount,
+                    Date = item.Date,
+                    Type = "Sabit Gider",
+                    ColorClass = "text-danger"
+                });
+            }
+
+            // 2. BAKIM MASRAFLARINI EKLE
+            var maintenances = _context.VehicleMaintenances.Include(x => x.Vehicle).Where(x => x.Cost > 0).ToList();
+            foreach (var item in maintenances)
+            {
+                fullList.Add(new FinancialItemViewModel
+                {
+                    Title = $"{item.Vehicle.LicensePlate} - Bakım",
+                    Amount = item.Cost,
+                    Date = item.StartDate,
+                    Type = "Araç Bakım",
+                    ColorClass = "text-danger"
+                });
+            }
+
+            // 3. PERSONEL MAAŞLARINI EKLE
+            var staffList = _context.Users.Where(u => u.Role == 1 && u.Salary > 0).ToList();
+            foreach (var staff in staffList)
+            {
+                fullList.Add(new FinancialItemViewModel
+                {
+                    Title = $"{staff.UserName} (Personel Maaşı)",
+                    Amount = staff.Salary,
+                    Date = DateTime.Now,
+                    Type = "Maaş",
+                    ColorClass = "text-danger"
+                });
+            }
+
+            // --- KİRALAMA GELİRLERİ ---
+            var rentals = _context.Rentals.Include(r => r.Vehicle).Include(r => r.User).ToList();
+            foreach (var item in rentals)
+            {
+                fullList.Add(new FinancialItemViewModel
+                {
+                    Title = $"Kiralama: {item.Vehicle.Brand} {item.Vehicle.Model} ({item.Vehicle.LicensePlate})",
+                    Amount = item.TotalPrice,
+                    Date = item.StartDate, 
+                    Type = "Gelir (Kiralama)",
+                    ColorClass = "text-success"
+                });
+            }
 
             // --- HESAPLAMALAR ---
             decimal totalIncome = _context.Rentals.Sum(x => x.TotalPrice);
 
-            decimal manualExpenses = _context.Expenses.Sum(x => x.Amount);
+            decimal totalExistingExpense = fullList.Where(x => x.ColorClass == "text-danger").Sum(x => x.Amount);
 
-            decimal maintenanceExpenses = _context.VehicleMaintenances.Sum(x => x.Cost);
+            decimal preProfit = totalIncome - totalExistingExpense;
 
-            decimal totalSalaries = _context.Users.Where(u => u.Role == 1 || u.Role == 2).Sum(u => u.Salary);
+            // 4. PATRON MAAŞI
+            decimal patronShare = 0;
+            if (preProfit > 0)
+            {
+                patronShare = preProfit * 0.80m;
 
+                fullList.Add(new FinancialItemViewModel
+                {
+                    Title = "Patron Hakedişi (%80 Kâr Payı)",
+                    Amount = patronShare,
+                    Date = DateTime.Now,
+                    Type = "Patron Payı",
+                    ColorClass = "text-warning font-weight-bold"
+                });
+            }
 
-            decimal totalExpenseAll = manualExpenses + maintenanceExpenses + totalSalaries;
-            decimal netProfit = totalIncome - totalExpenseAll;
+            decimal finalTotalExpense = totalExistingExpense + patronShare;
+            decimal companyRetainedEarnings = totalIncome - finalTotalExpense;
 
             ViewBag.TotalIncome = totalIncome;
+            ViewBag.TotalExpense = finalTotalExpense;
+            ViewBag.NetProfit = companyRetainedEarnings;
 
-            ViewBag.ManualExpense = manualExpenses;
-            ViewBag.MaintenanceExpense = maintenanceExpenses;
-            ViewBag.SalaryExpense = totalSalaries;
-
-            ViewBag.TotalExpense = totalExpenseAll;
-            ViewBag.NetProfit = netProfit;
-
-            return View(expenses);
+            return View(fullList.OrderByDescending(x => x.Date).ToList());
         }
 
         [HttpGet]

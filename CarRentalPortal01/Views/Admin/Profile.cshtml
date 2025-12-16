@@ -5,56 +5,79 @@
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
-<h1 class="h3 mb-4 text-gray-800">Profil Bilgileri</h1>
-
-<div class="row">
-    <div class="col-lg-6">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Kullanıcı Detayları</h6>
+<div class="row justify-content-center">
+    <div class="col-xl-8 col-lg-9">
+        <div class="card shadow mb-4 border-bottom-primary">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Kullanıcı Profili</h6>
+                <span class="badge badge-light text-primary">ID: @Model.UserId</span>
             </div>
             <div class="card-body">
-                <div class="text-center mb-4">
-                    <img class="img-profile rounded-circle" src="~/Admin/img/undraw_profile.svg" style="width: 100px; height: 80px;">
-                </div>
-
-                <form>
-                    <div class="form-group row">
-                        <label class="col-sm-3 col-form-label font-weight-bold">Email:</label>
-                        <div class="col-sm-9">
-                            <input type="text" readonly class="form-control-plaintext" value="@Model.Email">
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label class="col-sm-3 col-form-label font-weight-bold">Rol:</label>
-                        <div class="col-sm-9">
-                            @if (Model.Role == 1)
+                <div class="row align-items-center">
+                    <div class="col-md-4 text-center mb-4 mb-md-0">
+                        <div class="img-thumbnail rounded-circle p-1 bg-primary d-inline-block">
+                            @if (!string.IsNullOrEmpty(Model.DriverLicenseImage))
                             {
-                                <span class="badge badge-primary px-3 py-2">Yönetici (Admin)</span>
+                                <img src="@Model.DriverLicenseImage" alt="Profil Resmi" class="rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
                             }
                             else
                             {
-                                <span class="badge badge-secondary px-3 py-2">Kullanıcı</span>
+                                <img src="https://ui-avatars.com/api/?name=@Model.UserName&background=4e73df&color=fff&size=150" alt="Avatar" class="rounded-circle">
                             }
                         </div>
-                    </div>
-                    <div class="form-group row">
-                        <label class="col-sm-3 col-form-label font-weight-bold">Şifre:</label>
-                        <div class="col-sm-9">
-                            <input type="password" readonly class="form-control-plaintext" value="@Model.PasswordHash">
-                            <small class="text-muted">(Güvenlik nedeniyle gizli)</small>
+                        <div class="mt-3">
+                            <h4 class="font-weight-bold text-gray-800">@Model.UserName</h4>
+                            <p class="text-muted mb-1">
+                                @if (Model.Role == 2)
+                                {
+                                    <span class="badge badge-primary px-3 py-2">Yönetici (Patron)</span>
+                                }
+                                else if (Model.Role == 1)
+                                {
+
+                                    <span class="badge badge-info px-3 py-2">Personel</span>
+                                }
+                                else
+                                {
+
+                                    <span class="badge badge-secondary px-3 py-2">Müşteri</span>
+                                }
+                            </p>
                         </div>
                     </div>
-                </form>
 
-                <hr>
-                <div class="text-center">
-                    <a href="#" class="btn btn-warning btn-icon-split disabled">
-                        <span class="icon text-white-50">
-                            <i class="fas fa-key"></i>
-                        </span>
-                        <span class="text">Şifre Değiştir (Yakında)</span>
-                    </a>
+                    <div class="col-md-8 border-left pl-md-4">
+                        <h5 class="text-primary mb-3"><i class="fas fa-user-circle mr-2"></i>Kişisel Bilgiler</h5>
+
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label font-weight-bold text-gray-600">Ad Soyad (Kullanıcı Adı):</label>
+                            <div class="col-sm-8">
+                                <input type="text" readonly class="form-control-plaintext text-dark font-weight-bold" value="@Model.UserName">
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label font-weight-bold text-gray-600">E-Posta Adresi:</label>
+                            <div class="col-sm-8">
+                                <input type="text" readonly class="form-control-plaintext text-dark" value="@Model.Email">
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label font-weight-bold text-gray-600">Telefon:</label>
+                            <div class="col-sm-8">
+                                <input type="text" readonly class="form-control-plaintext text-dark" value="@(Model.PhoneNumber ?? "- Belirtilmemiş -")">
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <div class="text-right">
+                            <a asp-action="UserUpsert" asp-route-id="@Model.UserId" class="btn btn-warning">
+                                <i class="fas fa-user-edit mr-2"></i> Bilgilerimi Güncelle
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

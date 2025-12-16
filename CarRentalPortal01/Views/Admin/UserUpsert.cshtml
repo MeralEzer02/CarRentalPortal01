@@ -1,7 +1,7 @@
 ﻿@model CarRentalPortal01.ViewModels.UserUpsertViewModel
 
 @{
-    ViewData["Title"] = Model.User.UserId != 0 ? "Kullanıcı Düzenle" : "Yeni Kullanıcı Ekle";
+    ViewData["Title"] = Model.User.UserId != 0 ? "Kullanıcı/Personel Düzenle" : "Yeni Kayıt";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
@@ -10,7 +10,7 @@
         <div class="card shadow mb-4 border-left-primary">
             <div class="card-header py-3 d-flex justify-content-between align-items-center bg-white">
                 <h6 class="m-0 font-weight-bold text-primary">
-                    <i class="fas fa-user-edit mr-2"></i> @(Model.User.UserId != 0 ? "Kullanıcı Bilgilerini Düzenle" : "Yeni Kullanıcı Oluştur")
+                    <i class="fas fa-user-cog mr-2"></i> Kullanıcı ve Personel İşlemleri
                 </h6>
                 <a asp-action="UserList" class="btn btn-sm btn-secondary shadow-sm">
                     <i class="fas fa-arrow-left fa-sm text-white-50"></i> Listeye Dön
@@ -19,112 +19,79 @@
 
             <div class="card-body p-4">
                 <form method="post" asp-action="UserUpsert" enctype="multipart/form-data">
+                    <div asp-validation-summary="All" class="text-danger mb-3"></div>
                     <input asp-for="User.UserId" hidden />
                     <input asp-for="User.DriverLicenseImage" hidden />
 
                     <div class="row">
-                        <div class="col-md-8">
-                            <h5 class="text-gray-800 mb-3 border-bottom pb-2">Kişisel Bilgiler</h5>
+                        <div class="col-md-7">
+                            <h5 class="text-gray-800 mb-3 border-bottom pb-2">Hesap Bilgileri</h5>
 
                             <div class="form-row">
                                 <div class="form-group col-md-6">
-                                    <label class="font-weight-bold small text-muted">Kullanıcı Adı</label>
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fas fa-user"></i></span>
-                                        </div>
-                                        <input asp-for="User.UserName" class="form-control" placeholder="Örn: User123" />
-                                    </div>
-                                    <span asp-validation-for="User.UserName" class="text-danger small"></span>
+                                    <label class="small font-weight-bold">Kullanıcı Adı</label>
+                                    <input asp-for="User.UserName" class="form-control" placeholder="Örn: AhmetYilmaz" />
                                 </div>
-
                                 <div class="form-group col-md-6">
-                                    <label class="font-weight-bold small text-muted">E-Posta Adresi</label>
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                                        </div>
-                                        <input asp-for="User.Email" type="email" class="form-control" placeholder="ornek@email.com" />
-                                    </div>
-                                    <span asp-validation-for="User.Email" class="text-danger small"></span>
+                                    <label class="small font-weight-bold">E-Posta</label>
+                                    <input asp-for="User.Email" type="email" class="form-control" />
                                 </div>
-                            </div>
-
-                            <div class="form-row">
-                                <div class="form-group col-md-6">
-                                    <label class="font-weight-bold small text-muted">Telefon Numarası</label>
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fas fa-phone"></i></span>
-                                        </div>
-                                        <input asp-for="User.PhoneNumber" class="form-control" placeholder="05XX XXX XX XX" />
-                                    </div>
-                                </div>
-
-                                <div class="form-group col-md-6">
-                                    <label class="font-weight-bold small text-muted">Yetki Rolü</label>
-                                    <select asp-for="User.Role" class="form-control custom-select">
-                                        <option value="0">Müşteri (Standart Kullanıcı)</option>
-                                        <option value="1">Personel (Kısıtlı Yetki)</option>
-                                        <option value="2">Patron (Süper Admin)</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="form-group col-md-12" id="salaryDiv" style="display:none;">
-                                <label class="font-weight-bold text-success">Aylık Personel Maaşı (TL)</label>
-                                <input asp-for="User.Salary" type="number" class="form-control border-success" placeholder="0.00" />
-                                <small class="text-muted">Bu tutar her ay gider olarak Finans tablosuna yansıtılacaktır.</small>
                             </div>
 
                             <div class="form-group">
-                                <label class="font-weight-bold small text-muted">Şifre</label>
-                                <input asp-for="User.PasswordHash" type="password" class="form-control" placeholder="@(Model.User.UserId != 0 ? "Değiştirmek istemiyorsanız boş bırakın" : "Şifre belirleyin")" />
-                                <small class="form-text text-muted">
-                                    @(Model.User.UserId != 0 ? "* Sadece şifreyi değiştirmek istiyorsanız doldurun." : "* Yeni kullanıcı için zorunludur.")
-                                </small>
-                                <span asp-validation-for="User.PasswordHash" class="text-danger small"></span>
+                                <label class="small font-weight-bold">Telefon</label>
+                                <input asp-for="User.PhoneNumber" class="form-control" placeholder="05XX..." />
+                            </div>
+
+                            <div class="form-group">
+                                <label class="small font-weight-bold">Şifre</label>
+                                <input asp-for="User.PasswordHash" type="password" class="form-control" placeholder="Değiştirmek istemiyorsanız boş bırakın" />
                             </div>
                         </div>
 
-                        <div class="col-md-4 border-left">
-                            <h5 class="text-gray-800 mb-3 border-bottom pb-2">Ehliyet Görseli</h5>
-
-                            <div class="text-center mb-3">
-                                <div class="img-thumbnail bg-light d-flex align-items-center justify-content-center"
-                                     style="height: 200px; width: 100%; overflow: hidden; border-style: dashed;">
-
-                                    <img id="licensePreview"
-                                         src="@(!string.IsNullOrEmpty(Model.User.DriverLicenseImage) ? Model.User.DriverLicenseImage : "")"
-                                         style="width: 100%; height: 100%; object-fit: cover; display: @(!string.IsNullOrEmpty(Model.User.DriverLicenseImage) ? "block" : "none");"
-                                         alt="Ehliyet Önizleme" />
-
-                                    <div id="placeholderIcon" style="display: @(!string.IsNullOrEmpty(Model.User.DriverLicenseImage) ? "none" : "block");">
-                                        <i class="fas fa-id-card fa-3x text-gray-300"></i>
-                                        <p class="small text-muted mt-2">Görsel Seçilmedi</p>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="col-md-5 border-left">
+                            <h5 class="text-primary mb-3 border-bottom pb-2">Yetki ve Finans</h5>
 
                             <div class="form-group">
+                                <label class="font-weight-bold text-dark">Kullanıcı Rolü</label>
+                                <select asp-for="User.Role" class="form-control custom-select border-primary" id="roleSelect" onchange="toggleSalary()">
+                                    <option value="0">Standart Kullanıcı (Müşteri)</option>
+                                    <option value="1">Personel (Şirket Çalışanı)</option>
+                                    <option value="2">Süper Admin (Patron)</option>
+                                </select>
+                                <small class="text-muted">Personel veya Admin seçilirse maaş alanı açılır.</small>
+                            </div>
+
+                            <div class="form-group bg-light p-3 border rounded" id="salaryDiv" style="display:none;">
+                                <label class="font-weight-bold text-success"><i class="fas fa-money-bill-wave mr-1"></i> Aylık Maaş (TL)</label>
+                                <div class="input-group">
+                                    <input asp-for="User.Salary" type="number" class="form-control border-success" placeholder="0.00" />
+                                    <div class="input-group-append">
+                                        <span class="input-group-text text-success font-weight-bold">₺</span>
+                                    </div>
+                                </div>
+                                <small class="text-success">Bu tutar her ay Finans giderlerine yansır.</small>
+                            </div>
+
+                            <h5 class="text-gray-800 mt-4 mb-3 border-bottom pb-2">Görsel</h5>
+                            <div class="d-flex align-items-center">
+                                <div class="mr-3">
+                                    <img id="licensePreview"
+                                         src="@(!string.IsNullOrEmpty(Model.User.DriverLicenseImage) ? Model.User.DriverLicenseImage : "https://via.placeholder.com/100?text=Resim+Yok")"
+                                         style="width: 80px; height: 80px; object-fit: cover; border-radius: 10px; border: 1px solid #ddd;" />
+                                </div>
                                 <div class="custom-file">
                                     <input asp-for="File" type="file" class="custom-file-input" id="customFile" accept="image/*" onchange="previewImage(this)">
-                                    <label class="custom-file-label" for="customFile" data-browse="Seç">Dosya Yükle</label>
+                                    <label class="custom-file-label" for="customFile">Dosya Seç</label>
                                 </div>
-                                <small class="text-muted">JPG, PNG formatları desteklenir.</small>
                             </div>
                         </div>
                     </div>
 
-                    <div class="row mt-4">
-                        <div class="col-12 text-right">
-                            <a asp-action="UserList" class="btn btn-secondary mr-2">İptal</a>
-                            <button type="submit" class="btn btn-primary px-4">
-                                <i class="fas fa-save mr-1"></i> Kaydet
-                            </button>
-                        </div>
+                    <hr class="my-4" />
+                    <div class="text-right">
+                        <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save mr-1"></i> Kaydet</button>
                     </div>
-
                 </form>
             </div>
         </div>
@@ -133,46 +100,31 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-
     <script>
-        function previewImage(input) {
-            var preview = document.getElementById('licensePreview');
-            var icon = document.getElementById('placeholderIcon');
-            var fileLabel = document.querySelector('.custom-file-label');
+        $(document).ready(function() {
+            toggleSalary();
+        });
 
-            if (input.files && input.files[0]) {
-                var reader = new FileReader();
-
-                reader.onload = function (e) {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                    icon.style.display = 'none';
-                }
-
-                reader.readAsDataURL(input.files[0]);
-
-                fileLabel.textContent = input.files[0].name;
-            } else {
-                preview.src = "";
-                preview.style.display = 'none';
-                icon.style.display = 'block';
-                fileLabel.textContent = "Dosya Yükle";
-            }
-        }
-            <script>
         function toggleSalary() {
             var role = document.getElementById("roleSelect").value;
             var salaryDiv = document.getElementById("salaryDiv");
 
             if (role == "1" || role == "2") {
-                salaryDiv.style.display = "block";
+                $(salaryDiv).slideDown();
             } else {
-                salaryDiv.style.display = "none";
+                $(salaryDiv).slideUp();
             }
         }
 
-        // Sayfa ilk açıldığında çalıştır (Mevcut duruma göre)
-        toggleSalary();
-    </script>
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    $('#licensePreview').attr('src', e.target.result);
+                }
+                reader.readAsDataURL(input.files[0]);
+                $('.custom-file-label').text(input.files[0].name);
+            }
+        }
     </script>
 }
