@@ -16,6 +16,8 @@ namespace CarRentalPortal01.Data
         public DbSet<VehicleCategory> VehicleCategories { get; set; }
         public DbSet<VehicleMaintenance> VehicleMaintenances { get; set; }
         public DbSet<SystemLog> SystemLogs { get; set; }
+        public DbSet<DiscountCode> DiscountCodes { get; set; }
+        public DbSet<Expense> Expenses { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

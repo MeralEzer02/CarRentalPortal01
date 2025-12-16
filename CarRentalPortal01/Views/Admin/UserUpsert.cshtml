@@ -71,6 +71,12 @@
                                 </div>
                             </div>
 
+                            <div class="form-group col-md-12" id="salaryDiv" style="display:none;">
+                                <label class="font-weight-bold text-success">Aylık Personel Maaşı (TL)</label>
+                                <input asp-for="User.Salary" type="number" class="form-control border-success" placeholder="0.00" />
+                                <small class="text-muted">Bu tutar her ay gider olarak Finans tablosuna yansıtılacaktır.</small>
+                            </div>
+
                             <div class="form-group">
                                 <label class="font-weight-bold small text-muted">Şifre</label>
                                 <input asp-for="User.PasswordHash" type="password" class="form-control" placeholder="@(Model.User.UserId != 0 ? "Değiştirmek istemiyorsanız boş bırakın" : "Şifre belirleyin")" />
@@ -153,5 +159,20 @@
                 fileLabel.textContent = "Dosya Yükle";
             }
         }
+            <script>
+        function toggleSalary() {
+            var role = document.getElementById("roleSelect").value;
+            var salaryDiv = document.getElementById("salaryDiv");
+
+            if (role == "1" || role == "2") {
+                salaryDiv.style.display = "block";
+            } else {
+                salaryDiv.style.display = "none";
+            }
+        }
+
+        // Sayfa ilk açıldığında çalıştır (Mevcut duruma göre)
+        toggleSalary();
+    </script>
     </script>
 }

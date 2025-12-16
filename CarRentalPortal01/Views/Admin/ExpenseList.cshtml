@@ -1,0 +1,112 @@
+﻿@model IEnumerable<CarRentalPortal01.Models.Expense>
+
+@{
+    ViewData["Title"] = "Finans Yönetimi";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    // Controller'dan gelen veriler
+    decimal income = ViewBag.TotalIncome;
+    decimal expense = ViewBag.TotalExpense;
+    decimal profit = ViewBag.NetProfit;
+}
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Toplam Gelir (Ciro)</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@income.ToString("C2")</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-coins fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-left-danger shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Toplam Gider</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@(((decimal)ViewBag.TotalExpense).ToString("C2"))</div>
+
+                        <div class="mt-2 small text-muted">
+                            <div><i class="fas fa-file-invoice"></i> Sabit Gider: @(((decimal)ViewBag.ManualExpense).ToString("C2"))</div>
+                            <div><i class="fas fa-tools"></i> Araç Bakım: @(((decimal)ViewBag.MaintenanceExpense).ToString("C2"))</div>
+                            <div><i class="fas fa-users"></i> Personel Maaş: @(((decimal)ViewBag.SalaryExpense).ToString("C2"))</div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-arrow-down fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Net Kâr / Zarar</div>
+                        <div class="h5 mb-0 font-weight-bold @(profit >= 0 ? "text-success" : "text-danger")">
+                            @profit.ToString("C2")
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">Gider Listesi</h6>
+        <a asp-action="ExpenseUpsert" class="btn btn-danger btn-sm">
+            <i class="fas fa-minus-circle"></i> Yeni Gider Ekle
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped" id="ExpenseTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Başlık</th>
+                        <th>Tutar</th>
+                        <th>Tarih</th>
+                        <th>Açıklama</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td class="font-weight-bold">@item.Title</td>
+                            <td class="text-danger font-weight-bold">-@item.Amount.ToString("C2")</td>
+                            <td>@item.Date.ToString("dd.MM.yyyy")</td>
+                            <td>@item.Description</td>
+                            <td>
+                                <a asp-action="ExpenseUpsert" asp-route-id="@item.Id" class="btn btn-warning btn-sm">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="/Admin/DeleteExpense/@item.Id" class="btn btn-danger btn-sm" onclick="return confirm('Silmek istediğine emin misin?');">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

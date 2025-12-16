@@ -1,0 +1,61 @@
+﻿@model CarRentalPortal01.Models.DiscountCode
+
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Yeni Kampanya" : "Kampanya Düzenle";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow mb-4 border-left-success">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-success">
+                    @(Model.Id == 0 ? "Yeni İndirim Kuponu Oluştur" : "Kupon Düzenle")
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-action="CampaignUpsert">
+                    <input asp-for="Id" hidden />
+
+                    <div class="form-group">
+                        <label>Kampanya Kodu (Büyük Harf)</label>
+                        <input asp-for="Code" class="form-control" placeholder="Örn: YAZ2025" style="text-transform:uppercase" />
+                        <span asp-validation-for="Code" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>İndirim Oranı (%)</label>
+                        <div class="input-group">
+                            <input asp-for="DiscountRate" type="number" class="form-control" placeholder="10" min="1" max="100" />
+                            <div class="input-group-append">
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                        <span asp-validation-for="DiscountRate" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Başlangıç Tarihi</label>
+                            <input asp-for="StartDate" type="date" class="form-control" />
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Bitiş Tarihi</label>
+                            <input asp-for="EndDate" type="date" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="form-group form-check">
+                        <input type="checkbox" class="form-check-input" asp-for="IsActive" />
+                        <label class="form-check-label">Bu kod aktif olsun mu?</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-success btn-block">
+                        <i class="fas fa-save"></i> Kaydet
+                    </button>
+                    <a asp-action="CampaignList" class="btn btn-secondary btn-block">Vazgeç</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

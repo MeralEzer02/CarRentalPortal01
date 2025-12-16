@@ -115,8 +115,8 @@ namespace CarRentalPortal01.Controllers
         {
             var vehicle = _context.Vehicles
                 .Include(v => v.VehicleCategories).ThenInclude(vc => vc.Category)
-                .Include(v => v.Rentals).ThenInclude(r => r.User)                
-                .Include(v => v.Maintenances)                                    
+                .Include(v => v.Rentals).ThenInclude(r => r.User)
+                .Include(v => v.Maintenances)
                 .FirstOrDefault(x => x.Id == id);
 
             if (vehicle == null) return NotFound();
@@ -528,8 +528,8 @@ namespace CarRentalPortal01.Controllers
             }
 
             var conflictingRental = _rentalRepository.Find(r =>
-                r.VehicleId == vm.Rental.VehicleId &&      
-                r.Id != vm.Rental.Id &&                    
+                r.VehicleId == vm.Rental.VehicleId &&
+                r.Id != vm.Rental.Id &&
                 (vm.Rental.StartDate < r.EndDate && vm.Rental.EndDate > r.StartDate)
             ).FirstOrDefault();
 
@@ -730,7 +730,7 @@ namespace CarRentalPortal01.Controllers
             VehicleMaintenance vm = new VehicleMaintenance
             {
                 VehicleId = vehicleId,
-                StartDate = DateTime.Now 
+                StartDate = DateTime.Now
             };
 
             return PartialView("_AddMaintenancePartial", vm);
@@ -914,6 +914,174 @@ namespace CarRentalPortal01.Controllers
         {
             var logs = _context.SystemLogs.OrderByDescending(x => x.LogDate).ToList();
             return View(logs);
+        }
+
+        // --- KAMPANYA / İNDİRİM YÖNETİMİ ---
+        [Authorize(Roles = "2")]
+        public IActionResult CampaignList()
+        {
+            var expiredCodes = _context.DiscountCodes.Where(x => x.EndDate < DateTime.Now && x.IsActive).ToList();
+            if (expiredCodes.Any())
+            {
+                foreach (var item in expiredCodes) item.IsActive = false;
+                _context.SaveChanges();
+            }
+
+            var codes = _context.DiscountCodes.OrderByDescending(x => x.Id).ToList();
+            return View(codes);
+        }
+
+        [Authorize(Roles = "2")]
+        [HttpGet]
+        public IActionResult CampaignUpsert(int? id)
+        {
+            DiscountCode discount = new DiscountCode();
+
+            if (id.HasValue && id.Value > 0)
+            {
+                discount = _context.DiscountCodes.Find(id.Value);
+                if (discount == null) return NotFound();
+            }
+
+            return View(discount);
+        }
+
+        [Authorize(Roles = "2")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult CampaignUpsert(DiscountCode discount)
+        {
+            if (ModelState.IsValid)
+            {
+                discount.Code = discount.Code.ToUpper().Trim();
+
+                if (discount.EndDate < DateTime.Now)
+                {
+                    discount.IsActive = false;
+                    _toastNotification.AddInfoToastMessage("Tarihi geçmiş kampanya otomatik olarak Pasif yapıldı.");
+                }
+
+                if (discount.Id == 0)
+                {
+                    if (_context.DiscountCodes.Any(x => x.Code == discount.Code && x.IsActive))
+                    {
+                        ModelState.AddModelError("Code", "Bu kampanya kodu zaten aktif.");
+                        _toastNotification.AddErrorToastMessage("Bu kod zaten kullanılıyor.");
+                        return View(discount);
+                    }
+
+                    _context.DiscountCodes.Add(discount);
+                    _toastNotification.AddSuccessToastMessage("Kampanya oluşturuldu.");
+                    LogToDb("Ekleme", $"Yeni kampanya eklendi: {discount.Code} (%{discount.DiscountRate})");
+                }
+                else
+                {
+                    _context.DiscountCodes.Update(discount);
+                    _toastNotification.AddSuccessToastMessage("Kampanya güncellendi.");
+                    LogToDb("Güncelleme", $"Kampanya güncellendi: {discount.Code}");
+                }
+
+                _context.SaveChanges();
+                return RedirectToAction("CampaignList");
+            }
+            return View(discount);
+        }
+        public IActionResult DeleteCampaign(int id)
+        {
+            var discount = _context.DiscountCodes.Find(id);
+            if (discount != null)
+            {
+                _context.DiscountCodes.Remove(discount);
+                _context.SaveChanges();
+                _toastNotification.AddWarningToastMessage("Kampanya silindi.");
+
+                LogToDb("Silme", $"Kampanya silindi: {discount.Code}");
+            }
+            return RedirectToAction("CampaignList");
+        }
+
+        // --- FİNANS VE GİDER YÖNETİMİ ---
+
+        [Authorize(Roles = "2")]
+        public IActionResult ExpenseList()
+        {
+            var expenses = _context.Expenses.OrderByDescending(x => x.Date).ToList();
+
+            // --- HESAPLAMALAR ---
+            decimal totalIncome = _context.Rentals.Sum(x => x.TotalPrice);
+
+            decimal manualExpenses = _context.Expenses.Sum(x => x.Amount);
+
+            decimal maintenanceExpenses = _context.VehicleMaintenances.Sum(x => x.Cost);
+
+            decimal totalSalaries = _context.Users.Where(u => u.Role == 1 || u.Role == 2).Sum(u => u.Salary);
+
+
+            decimal totalExpenseAll = manualExpenses + maintenanceExpenses + totalSalaries;
+            decimal netProfit = totalIncome - totalExpenseAll;
+
+            ViewBag.TotalIncome = totalIncome;
+
+            ViewBag.ManualExpense = manualExpenses;
+            ViewBag.MaintenanceExpense = maintenanceExpenses;
+            ViewBag.SalaryExpense = totalSalaries;
+
+            ViewBag.TotalExpense = totalExpenseAll;
+            ViewBag.NetProfit = netProfit;
+
+            return View(expenses);
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "2")]
+        public IActionResult ExpenseUpsert(int? id)
+        {
+            Expense expense = new Expense();
+            if (id.HasValue && id.Value > 0)
+            {
+                expense = _context.Expenses.Find(id.Value);
+                if (expense == null) return NotFound();
+            }
+            return View(expense);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "2")]
+        public IActionResult ExpenseUpsert(Expense expense)
+        {
+            if (ModelState.IsValid)
+            {
+                if (expense.Id == 0)
+                {
+                    _context.Expenses.Add(expense);
+                    _toastNotification.AddSuccessToastMessage("Gider kaydedildi.");
+                    LogToDb("Gider Ekleme", $"{expense.Title} ({expense.Amount:C2}) eklendi.");
+                }
+                else
+                {
+                    _context.Expenses.Update(expense);
+                    _toastNotification.AddSuccessToastMessage("Gider güncellendi.");
+                    LogToDb("Gider Güncelleme", $"{expense.Title} güncellendi.");
+                }
+                _context.SaveChanges();
+                return RedirectToAction("ExpenseList");
+            }
+            return View(expense);
+        }
+
+        [Authorize(Roles = "2")]
+        public IActionResult DeleteExpense(int id)
+        {
+            var expense = _context.Expenses.Find(id);
+            if (expense != null)
+            {
+                _context.Expenses.Remove(expense);
+                _context.SaveChanges();
+                _toastNotification.AddWarningToastMessage("Gider silindi.");
+                LogToDb("Gider Silme", $"{expense.Title} silindi.");
+            }
+            return RedirectToAction("ExpenseList");
         }
     }
 }
