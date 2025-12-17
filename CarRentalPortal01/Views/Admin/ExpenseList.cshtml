@@ -53,6 +53,7 @@
                     <tr>
                         <th>Gider / İşlem Adı</th>
                         <th>Kategori</th>
+                        <th>Detaylar</th>
                         <th>Tarih</th>
                         <th>Tutar</th>
                     </tr>
@@ -75,6 +76,7 @@
                             <td>
                                 <span class="badge badge-light border @item.ColorClass">@item.Type</span>
                             </td>
+                            <td class="small text-muted">@item.Details</td>
                             <td>@item.Date.ToString("dd.MM.yyyy")</td>
                             <td class="font-weight-bold @item.ColorClass">
                                 @if (item.ColorClass.Contains("success"))

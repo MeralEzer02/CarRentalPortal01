@@ -4,11 +4,16 @@
     ViewData["Title"] = "Kullanıcı Yönetimi";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 
-    var customers = Model.Where(u => u.Role == 0).ToList(); // Müşteriler
-    var staff = Model.Where(u => u.Role == 1 || u.Role == 2).ToList(); // Personel ve Patron
+    var customers = Model.Where(u => u.Role == 0).ToList();
+    var staff = Model.Where(u => u.Role == 1 || u.Role == 2).ToList();
 }
 
-<h1 class="h3 mb-2 text-gray-800">Kullanıcı Yönetimi</h1>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Kullanıcı Yönetimi</h1>
+    <a asp-action="UserUpsert" class="btn btn-primary shadow-sm">
+        <i class="fas fa-user-plus fa-sm text-white-50 mr-2"></i> Yeni Kullanıcı Ekle
+    </a>
+</div>
 
 <div class="card shadow mb-4">
     <div class="card-header py-3">
@@ -107,13 +112,20 @@
                                         }
                                     </td>
                                     <td class="font-weight-bold text-dark">
-                                        @item.Salary.ToString("C2")
+                                        @if (item.Role == 2)
+                                        {
+                                            <span class="text-success" title="Otomatik Hesaplanan %80 Kâr Payı">
+                                                @(((decimal)ViewBag.CalculatedPatronShare).ToString("C2"))
+                                            </span>
+                                            <div class="small text-muted font-italic">*Anlık Kâr Payı</div>
+                                        }
+                                        else
+                                        {
+                                            @item.Salary.ToString("C2")
+                                        }
                                     </td>
                                     <td>
-                                        @if (User.IsInRole("2"))
-                                        {
-                                            <a asp-action="UserUpsert" asp-route-id="@item.UserId" class="btn btn-warning btn-sm">Maaş/Yetki Düzenle</a>
-                                        }
+                                        <a asp-action="UserUpsert" asp-route-id="@item.UserId" class="btn btn-warning btn-sm">Düzenle</a>
                                     </td>
                                 </tr>
                             }

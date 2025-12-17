@@ -86,7 +86,7 @@ namespace CarRentalPortal01.Controllers
         }
 
         // --- LİSTELEME İŞLEMLERİ ---
-
+        // --- Araç Listesi ---
         public IActionResult VehicleList()
         {
             var vehicles = _context.Vehicles
@@ -96,19 +96,35 @@ namespace CarRentalPortal01.Controllers
             return View(vehicles);
         }
 
+        // --- Kiralama Listesi ---
         public IActionResult RentalList()
         {
             var rentals = _rentalRepository.GetAll("Vehicle", "User");
             return View(rentals);
         }
 
+        // --- Kullanıcı Listesi ---
         [Authorize(Roles = "2")]
         public IActionResult UserList()
         {
-            var users = _userRepository.GetAll("Rentals.Vehicle");
+            decimal totalIncome = _context.Rentals.Sum(x => x.TotalPrice);
+
+            decimal manualExpenses = _context.Expenses.Sum(x => x.Amount);
+            decimal maintenanceExpenses = _context.VehicleMaintenances.Sum(x => x.Cost);
+            decimal staffSalaries = _context.Users.Where(u => u.Role == 1).Sum(u => u.Salary);
+            decimal totalExpenses = manualExpenses + maintenanceExpenses + staffSalaries;
+
+            decimal profit = totalIncome - totalExpenses;
+            decimal patronShare = profit > 0 ? profit * 0.80m : 0;
+
+            ViewBag.CalculatedPatronShare = patronShare;
+
+            var users = _context.Users.ToList();
             return View(users);
         }
-
+        // ==========================================
+        //         ARAÇ LİSTESİ VE İŞLEMLERİ
+        // ==========================================
         // --- ARAÇ BİLGİLERİ ---
         [HttpGet]
         public IActionResult GetVehicleDetails(int id)
@@ -124,7 +140,7 @@ namespace CarRentalPortal01.Controllers
             return PartialView("_VehicleDetailPartial", vehicle);
         }
 
-        // --- ARAÇ EKLEME / GÜNCELLEME ---
+        // --- Araç Ekleme / Güncelleme ---
 
         [HttpGet]
         public IActionResult Upsert(int? id)
@@ -211,6 +227,8 @@ namespace CarRentalPortal01.Controllers
             _toastNotification.AddErrorToastMessage("Bilgileri kontrol edin.");
             return View(vm);
         }
+
+        // --- Araç Silme ---
         [Authorize(Roles = "2")]
         public IActionResult Delete(int id)
         {
@@ -221,139 +239,174 @@ namespace CarRentalPortal01.Controllers
                 _vehicleRepository.Remove(vehicle);
                 _vehicleRepository.Save();
 
-                LogToDb("Silme", $"Araç silindi: {vehicleName}");
+                LogToDb("Silme", $"Araç silindi: {vehicle.Brand} {vehicle.Model} ({vehicle.LicensePlate}");
 
                 _toastNotification.AddWarningToastMessage("Araç başarıyla silindi.");
             }
             return RedirectToAction("VehicleList");
         }
 
+
+        // ==========================================
+        //         STOK DURUMU / ENVANTER SAYFASI
+        // ==========================================
+        // --- STOK DURUMU / ENVANTER RAPORU ---
         [Authorize(Roles = "2")]
-        [HttpPost]
-        public IActionResult ToggleStatus(int id)
+        public IActionResult Inventory()
         {
-            var vehicle = _vehicleRepository.GetById(id);
-            if (vehicle == null)
-            {
-                return Json(new { success = false, message = "Araç bulunamadı" });
-            }
+            var allVehicles = _vehicleRepository.GetAll();
 
-            vehicle.IsAvailable = !vehicle.IsAvailable;
+            var inventory = allVehicles
+                .GroupBy(v => new { v.Brand, v.Model, v.Color, v.FuelType, v.GearType })
+                .Select(g => new InventoryItemViewModel
+                {
+                    Brand = g.Key.Brand,
+                    Model = g.Key.Model,
+                    Color = g.Key.Color ?? "Belirtilmemiş",
+                    FuelType = g.Key.FuelType ?? "-",
+                    GearType = g.Key.GearType ?? "-",
 
-            _vehicleRepository.Update(vehicle);
-            _vehicleRepository.Save();
+                    TotalCount = g.Count(),
 
-            return Json(new { success = true, isAvailable = vehicle.IsAvailable });
+                    AvailableCount = g.Count(v => v.IsAvailable),
+
+                    RentedCount = g.Count(v => !v.IsAvailable)
+                })
+                .OrderByDescending(x => x.TotalCount)
+                .ToList();
+
+            return View(inventory);
         }
 
-        // --- KULLANICI İŞLEMLERİ ---
+
+        // ==========================================
+        //         BAKIM & SERVİS YÖNETİMİ
+        // ==========================================
+
+        // --- 1. BAKIM LİSTESİ ---
+        [Authorize(Roles = "2")]
+        public IActionResult MaintenanceList()
+        {
+            var maintenances = _context.VehicleMaintenances
+                .Include(m => m.Vehicle)
+                .OrderBy(m => m.IsCompleted)
+                .ThenByDescending(m => m.StartDate)
+                .ToList();
+
+            return View(maintenances);
+        }
+
+        // --- 2. BAKIM EKLEME (MODAL AÇMA - GET) ---
         [HttpGet]
         [Authorize(Roles = "2")]
-        public IActionResult UserUpsert(int? id)
+        public IActionResult AddMaintenance(int? vehicleId)
         {
-            UserUpsertViewModel vm = new UserUpsertViewModel();
-
-            if (id == null || id == 0)
+            VehicleMaintenance vm = new VehicleMaintenance
             {
-                vm.User = new User();
+                StartDate = DateTime.Now
+            };
+
+            if (vehicleId.HasValue && vehicleId.Value > 0)
+            {
+                vm.VehicleId = vehicleId.Value;
             }
             else
             {
-                vm.User = _userRepository.GetById(id.GetValueOrDefault());
-                if (vm.User == null)
-                {
-                    return NotFound();
-                }
-            }
-            return View(vm);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "2")]
-        public IActionResult UserUpsert(UserUpsertViewModel vm)
-        {
-            if (vm.User.UserId == 0 && string.IsNullOrEmpty(vm.User.PasswordHash))
-            {
-                ModelState.AddModelError("User.PasswordHash", "Yeni kullanıcı için şifre zorunludur.");
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return View(vm);
-            }
-
-            if (vm.User.UserId == 0)
-            {
-                if (vm.File != null)
-                {
-                    string fileName = UploadFile(vm.File);
-                    vm.User.DriverLicenseImage = fileName;
-                }
-
-                _userRepository.Add(vm.User);
-                _userRepository.Save();
-                _toastNotification.AddSuccessToastMessage("Kullanıcı oluşturuldu.");
-            }
-            // --- MEVCUT KULLANICIYI GÜNCELLEME ---
-            else
-            {
-                var objFromDb = _userRepository.GetById(vm.User.UserId);
-
-                if (objFromDb == null) return NotFound();
-
-                objFromDb.UserName = vm.User.UserName;
-                objFromDb.Email = vm.User.Email;
-                objFromDb.PhoneNumber = vm.User.PhoneNumber;
-                objFromDb.Role = vm.User.Role;
-
-                objFromDb.Salary = vm.User.Salary;
-
-                if (!string.IsNullOrEmpty(vm.User.PasswordHash))
-                {
-                    objFromDb.PasswordHash = vm.User.PasswordHash;
-                }
-
-                if (vm.File != null)
-                {
-                    if (!string.IsNullOrEmpty(objFromDb.DriverLicenseImage))
+                ViewBag.VehicleList = _context.Vehicles
+                    .Select(v => new SelectListItem
                     {
-                        string oldPath = Path.Combine(_webHostEnvironment.WebRootPath, objFromDb.DriverLicenseImage.TrimStart('\\'));
-                        if (System.IO.File.Exists(oldPath)) System.IO.File.Delete(oldPath);
-                    }
+                        Text = $"{v.Brand} {v.Model} - {v.LicensePlate}",
+                        Value = v.Id.ToString()
+                    }).ToList();
+            }
 
-                    string fileName = UploadFile(vm.File);
-                    objFromDb.DriverLicenseImage = fileName;
+            return PartialView("_AddMaintenancePartial", vm);
+        }
+
+        // --- 3. BAKIM KAYDETME (POST) ---
+        [HttpPost]
+        [Authorize(Roles = "2")]
+        [ValidateAntiForgeryToken]
+        public IActionResult AddMaintenance(VehicleMaintenance maintenance)
+        {
+            if (ModelState.IsValid)
+            {
+                var vehicle = _context.Vehicles.Find(maintenance.VehicleId);
+                if (vehicle != null)
+                {
+                    vehicle.IsAvailable = false;
+                    _context.Vehicles.Update(vehicle);
                 }
 
-                _userRepository.Update(objFromDb);
-                _userRepository.Save();
-                _toastNotification.AddSuccessToastMessage("Kullanıcı ve resim güncellendi.");
+                _context.VehicleMaintenances.Add(maintenance);
+                _context.SaveChanges();
+
+                _toastNotification.AddSuccessToastMessage("Araç bakıma alındı.");
+
+                string plaka = vehicle != null ? vehicle.LicensePlate : "Bilinmeyen Araç";
+                LogToDb("Bakım Başlangıcı", $"{plaka} plakalı araç servise alındı. Tür: {maintenance.MaintenanceType}");
+
+                return RedirectToAction("MaintenanceList");
             }
 
-            return RedirectToAction("UserList");
+            return RedirectToAction("MaintenanceList");
         }
 
-        // --- YARDIMCI METOD ---
+        // --- 4. BAKIMI BİTİRME (SERVİSTEN ÇIKARMA) ---
+        [HttpPost]
         [Authorize(Roles = "2")]
-        private string UploadFile(IFormFile file)
+        public IActionResult FinishMaintenance(int id)
         {
-            string wwwRootPath = _webHostEnvironment.WebRootPath;
-            string fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
-            string licensePath = Path.Combine(wwwRootPath, @"images\licenses");
+            var maintenance = _context.VehicleMaintenances.Include(m => m.Vehicle).FirstOrDefault(m => m.Id == id);
+            if (maintenance == null) return Json(new { success = false, message = "Kayıt bulunamadı." });
 
-            if (!Directory.Exists(licensePath)) Directory.CreateDirectory(licensePath);
+            maintenance.IsCompleted = true;
+            maintenance.EndDate = DateTime.Now;
 
-            using (var fileStream = new FileStream(Path.Combine(licensePath, fileName), FileMode.Create))
+            if (maintenance.Vehicle != null)
             {
-                file.CopyTo(fileStream);
+                maintenance.Vehicle.IsAvailable = true;
+                _context.Vehicles.Update(maintenance.Vehicle);
             }
 
-            return @"\images\licenses\" + fileName;
+            _context.VehicleMaintenances.Update(maintenance);
+            _context.SaveChanges();
+
+            LogToDb("Bakım Tamamlandı", $"{maintenance.Vehicle?.LicensePlate} plakalı araç servisten çıktı.");
+
+            return Json(new { success = true, message = "Bakım tamamlandı, araç tekrar müsait!" });
         }
+
+        // --- 5. BAKIM SİLME ---
+        [Authorize(Roles = "2")]
+        public IActionResult DeleteMaintenance(int id)
+        {
+            var maintenance = _context.VehicleMaintenances.Include(m => m.Vehicle).FirstOrDefault(m => m.Id == id);
+
+            if (maintenance != null)
+            {
+                if (!maintenance.IsCompleted && maintenance.Vehicle != null)
+                {
+                    maintenance.Vehicle.IsAvailable = true;
+                    _context.Vehicles.Update(maintenance.Vehicle);
+                }
+
+                string logInfo = $"{maintenance.Vehicle?.LicensePlate} - {maintenance.MaintenanceType}";
+
+                _context.VehicleMaintenances.Remove(maintenance);
+                _context.SaveChanges();
+
+                _toastNotification.AddWarningToastMessage("Bakım kaydı silindi.");
+                LogToDb("Bakım Silme", $"Bakım kaydı silindi: {logInfo}");
+            }
+
+            return RedirectToAction("MaintenanceList");
+        }
+
+        // ==========================================
+        //         KATEGORİ LİSTESİ VE İŞLEMLERİ
+        // ==========================================
         // --- KATEGORİ İŞLEMLERİ ---
-
-
         public IActionResult CategoryList()
         {
             var categories = _categoryRepository.GetAll(c => c.VehicleCategories);
@@ -393,6 +446,7 @@ namespace CarRentalPortal01.Controllers
             }
         }
 
+        // --- Kategori Ekleme ---
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult CategoryUpsert(CategoryUpsertViewModel vm)
@@ -426,6 +480,10 @@ namespace CarRentalPortal01.Controllers
                     }
                 }
                 _context.SaveChanges();
+                if (vm.Category.Id == 0)
+                    LogToDb("Kategori Ekleme", $"Yeni kategori eklendi: {vm.Category}");
+                else
+                    LogToDb("Kategori Güncelleme", $"{vm.Category} kategorisi güncellendi.");
 
                 return RedirectToAction("CategoryList");
             }
@@ -439,6 +497,7 @@ namespace CarRentalPortal01.Controllers
             return View(vm);
         }
 
+        // --- Kategori Silme ---
         [Authorize(Roles = "2")]
         public IActionResult DeleteCategory(int id)
         {
@@ -455,6 +514,8 @@ namespace CarRentalPortal01.Controllers
 
                 _categoryRepository.Remove(category);
                 _categoryRepository.Save();
+                LogToDb("Kategori Silme", $"{category} kategorisi silindi.");
+
                 _toastNotification.AddWarningToastMessage("Kategori başarıyla silindi.");
             }
             else
@@ -465,7 +526,9 @@ namespace CarRentalPortal01.Controllers
             return RedirectToAction("CategoryList");
         }
 
-
+        // ==========================================
+        //         KİRALAMA LİSTESİ VE İŞLEMLERİ
+        // ==========================================
         // --- KİRALAMA İŞLEMLERİ ---
         [HttpGet]
         public IActionResult RentalUpsert(int? id)
@@ -500,6 +563,8 @@ namespace CarRentalPortal01.Controllers
                 return View(vm);
             }
         }
+
+        // --- Kiralama Güncelleme ---
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult RentalUpsert(RentalUpsertViewModel vm)
@@ -527,11 +592,9 @@ namespace CarRentalPortal01.Controllers
             if (conflictingRental != null)
             {
                 var conflictMsg = $"Bu araç seçilen tarihlerde dolu! ({conflictingRental.StartDate:dd.MM.yyyy} - {conflictingRental.EndDate:dd.MM.yyyy} arasında kirada)";
-
                 ModelState.AddModelError("", conflictMsg);
                 _toastNotification.AddErrorToastMessage("Araç bu tarihlerde müsait değil!");
             }
-
 
             if (ModelState.IsValid)
             {
@@ -543,19 +606,24 @@ namespace CarRentalPortal01.Controllers
                     vm.Rental.TotalPrice = (decimal)days * selectedVehicle.DailyRentalRate;
                 }
 
+                var customerName = _userRepository.GetById(vm.Rental.UserId)?.UserName ?? "Bilinmeyen Müşteri";
+                var vehicleInfo = selectedVehicle != null ? $"{selectedVehicle.Brand} {selectedVehicle.Model} ({selectedVehicle.LicensePlate})" : "Bilinmeyen Araç";
+
                 if (vm.Rental.Id == 0)
                 {
                     _rentalRepository.Add(vm.Rental);
                     _toastNotification.AddSuccessToastMessage("Kiralama oluşturuldu.");
+
+                    LogToDb("Kiralama", $"Yeni Kiralama: {customerName} isimli müşteri, {vehicleInfo} aracını kiraladı. Tutar: {vm.Rental.TotalPrice:C2}");
                 }
                 else
                 {
                     _rentalRepository.Update(vm.Rental);
                     _toastNotification.AddSuccessToastMessage("Kiralama güncellendi.");
+                    LogToDb("Kiralama Güncelleme", $"Kiralama kaydı güncellendi. Yeni Tutar: {vm.Rental.TotalPrice}");
                 }
 
                 _rentalRepository.Save();
-                return RedirectToAction("RentalList");
             }
 
             vm.UserList = _userRepository.GetAll().Select(u => new SelectListItem
@@ -573,8 +641,32 @@ namespace CarRentalPortal01.Controllers
             return View(vm);
         }
 
-        // --- TAKVİM (SCHEDULER) İŞLEMLERİ ---
         [Authorize(Roles = "2")]
+        public IActionResult DeleteRental(int id)
+        {
+            var rental = _context.Rentals
+                .Include(r => r.Vehicle)
+                .Include(r => r.User)
+                .FirstOrDefault(r => r.Id == id);
+
+            if (rental != null)
+            {
+                string logInfo = $"{rental.User?.UserName ?? "Silinmiş Üye"} - {rental.Vehicle?.LicensePlate ?? "Silinmiş Araç"} ({rental.StartDate:dd.MM} - {rental.EndDate:dd.MM})";
+
+                _context.Rentals.Remove(rental);
+                _context.SaveChanges();
+
+                _toastNotification.AddWarningToastMessage("Kiralama kaydı silindi.");
+
+                LogToDb("Kiralama Silme", $"Kiralama iptal edildi/silindi: {logInfo}");
+            }
+            return RedirectToAction("RentalList");
+        }
+
+        // ==========================================
+        //         KİRALAMA TAKVİMİ SAYFASI
+        // ==========================================
+        // --- TAKVİM (SCHEDULER) İŞLEMLERİ ---
         public IActionResult Scheduler()
         {
             return View();
@@ -603,6 +695,9 @@ namespace CarRentalPortal01.Controllers
             return Json(events);
         }
 
+        // ==========================================
+        //         RAPORLAMA SAYFASI VE İŞLEMLERİ
+        // ==========================================
         // --- RAPORLAMA İŞLEMLERİ ---
         [Authorize(Roles = "2")]
         public IActionResult Reports()
@@ -646,119 +741,12 @@ namespace CarRentalPortal01.Controllers
         }
 
 
-        // --- STOK DURUMU / ENVANTER RAPORU ---
-        [Authorize(Roles = "2")]
-        public IActionResult Inventory()
-        {
-            var allVehicles = _vehicleRepository.GetAll();
-
-            var inventory = allVehicles
-                .GroupBy(v => new { v.Brand, v.Model, v.Color, v.FuelType, v.GearType })
-                .Select(g => new InventoryItemViewModel
-                {
-                    Brand = g.Key.Brand,
-                    Model = g.Key.Model,
-                    Color = g.Key.Color ?? "Belirtilmemiş",
-                    FuelType = g.Key.FuelType ?? "-",
-                    GearType = g.Key.GearType ?? "-",
-
-                    TotalCount = g.Count(),
-
-                    AvailableCount = g.Count(v => v.IsAvailable),
-
-                    RentedCount = g.Count(v => !v.IsAvailable)
-                })
-                .OrderByDescending(x => x.TotalCount)
-                .ToList();
-
-            return View(inventory);
-        }
-
-        // --- BAKIM LİSTESİ---
-        [Authorize(Roles = "2")]
-        public IActionResult MaintenanceList()
-        {
-            var maintenances = _context.VehicleMaintenances
-                .Include(m => m.Vehicle)
-                .OrderBy(m => m.IsCompleted)
-                .ThenByDescending(m => m.StartDate)
-                .ToList();
-
-            return View(maintenances);
-        }
-
-        // --- BAKIMI BİTİRME (SERVİSTEN ÇIKARMA) ---
-        [Authorize(Roles = "2")]
-        [HttpPost]
-        public IActionResult FinishMaintenance(int id)
-        {
-            var maintenance = _context.VehicleMaintenances.Find(id);
-            if (maintenance == null) return Json(new { success = false, message = "Kayıt bulunamadı." });
-
-            // 1. Bakımı Tamamla
-            maintenance.IsCompleted = true;
-            maintenance.EndDate = DateTime.Now;
-
-            // 2. Aracı Tekrar MÜSAİT Yap
-            var vehicle = _context.Vehicles.Find(maintenance.VehicleId);
-            if (vehicle != null)
-            {
-                vehicle.IsAvailable = true;
-                _context.Vehicles.Update(vehicle);
-            }
-
-            _context.VehicleMaintenances.Update(maintenance);
-            _context.SaveChanges();
-
-            return Json(new { success = true, message = "Bakım tamamlandı, araç tekrar müsait!" });
-        }
-
-        // --- BAKIM EKLEME MODALINI GETİR (GET) ---
-        [HttpGet]
-        [Authorize(Roles = "2")]
-        public IActionResult AddMaintenance(int vehicleId)
-        {
-            VehicleMaintenance vm = new VehicleMaintenance
-            {
-                VehicleId = vehicleId,
-                StartDate = DateTime.Now
-            };
-
-            return PartialView("_AddMaintenancePartial", vm);
-        }
-
-        // --- BAKIMI KAYDET VE ARACI PASİFE AL (POST) ---
-        [HttpGet]
-        [Authorize(Roles = "2")]
-        public IActionResult AddMaintenance(int? vehicleId)
-        {
-            VehicleMaintenance vm = new VehicleMaintenance
-            {
-                StartDate = DateTime.Now
-            };
-
-            if (vehicleId.HasValue && vehicleId.Value > 0)
-            {
-                vm.VehicleId = vehicleId.Value;
-            }
-            else
-            {
-                ViewBag.VehicleList = _context.Vehicles
-                    .Select(v => new SelectListItem
-                    {
-                        Text = v.Brand + " " + v.Model + " - " + v.LicensePlate,
-                        Value = v.Id.ToString()
-                    }).ToList();
-            }
-
-            return PartialView("_AddMaintenancePartial", vm);
-        }
 
         // --- PDF SÖZLEŞME OLUŞTURMA ---
         [Authorize(Roles = "2")]
         public IActionResult DownloadContract(int id)
         {
-            // 1. Kiralama Bilgilerini (User ve Vehicle dahil) Çek
+            // 1. Kiralama Bilgilerini Çek
             var rental = _context.Rentals
                 .Include(r => r.User)
                 .Include(r => r.Vehicle)
@@ -794,14 +782,14 @@ namespace CarRentalPortal01.Controllers
                 document.Add(companyInfo);
 
                 // --- 4. TABLO: MÜŞTERİ VE ARAÇ BİLGİLERİ ---
-                PdfPTable table = new PdfPTable(2); // 2 Sütunlu Tablo
+                PdfPTable table = new PdfPTable(2);
                 table.WidthPercentage = 100;
 
                 // Müşteri Bilgileri Hücresi
                 PdfPCell cellCustomer = new PdfPCell();
                 cellCustomer.Border = 0;
                 cellCustomer.AddElement(new Paragraph("MÜŞTERİ BİLGİLERİ", subTitleFont));
-                cellCustomer.AddElement(new Paragraph($"Adı Soyadı: {rental.User.UserName}", normalFont)); // UserName yerine Ad Soyad alanı varsa onu kullan
+                cellCustomer.AddElement(new Paragraph($"Adı Soyadı: {rental.User.UserName}", normalFont));
                 cellCustomer.AddElement(new Paragraph($"E-Posta: {rental.User.Email}", normalFont));
                 cellCustomer.AddElement(new Paragraph($"Telefon: {rental.User.PhoneNumber ?? "Belirtilmemiş"}", normalFont));
                 cellCustomer.AddElement(new Paragraph("\n"));
@@ -877,7 +865,146 @@ namespace CarRentalPortal01.Controllers
                 return File(ms.ToArray(), "application/pdf", $"Sozlesme_{rental.Vehicle.LicensePlate}_{rental.Id}.pdf");
             }
         }
-        // --- LOGLAMA YARDIMCISI (Private Method) ---
+
+
+        // ==========================================
+        //         KULLANICI LİSTESİ VE İŞLEMLERİ
+        // ==========================================
+        // --- KULLANICI İŞLEMLERİ ---
+        [HttpGet]
+        [Authorize(Roles = "2")]
+        public IActionResult UserUpsert(int? id)
+        {
+            UserUpsertViewModel vm = new UserUpsertViewModel();
+
+            if (id == null || id == 0)
+            {
+                vm.User = new User();
+            }
+            else
+            {
+                vm.User = _userRepository.GetById(id.GetValueOrDefault());
+                if (vm.User == null)
+                {
+                    return NotFound();
+                }
+            }
+            return View(vm);
+        }
+
+        // --- Kullanıcı Ekleme ---
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "2")]
+        public IActionResult UserUpsert(UserUpsertViewModel vm)
+        {
+            if (vm.User.UserId == 0 && string.IsNullOrEmpty(vm.User.PasswordHash))
+            {
+                ModelState.AddModelError("User.PasswordHash", "Yeni kullanıcı için şifre zorunludur.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return View(vm);
+            }
+
+            // --- YENİ KULLANICI EKLEME ---
+            if (vm.User.UserId == 0)
+            {
+                if (vm.File != null)
+                {
+                    string fileName = UploadFile(vm.File);
+                    vm.User.DriverLicenseImage = fileName;
+                }
+
+                _userRepository.Add(vm.User);
+                _userRepository.Save();
+
+                _toastNotification.AddSuccessToastMessage("Kullanıcı oluşturuldu.");
+                LogToDb("Kullanıcı Ekleme", $"Yeni kullanıcı: {vm.User.UserName} ({vm.User.Email}) oluşturuldu.");
+            }
+            // --- MEVCUT KULLANICI GÜNCELLEME ---
+            else
+            {
+                var objFromDb = _userRepository.GetById(vm.User.UserId);
+                if (objFromDb == null) return NotFound();
+
+                objFromDb.UserName = vm.User.UserName;
+                objFromDb.Email = vm.User.Email;
+                objFromDb.PhoneNumber = vm.User.PhoneNumber;
+                objFromDb.Role = vm.User.Role;
+                objFromDb.Salary = vm.User.Salary;
+
+                if (!string.IsNullOrEmpty(vm.User.PasswordHash))
+                {
+                    objFromDb.PasswordHash = vm.User.PasswordHash;
+                }
+
+                if (vm.File != null)
+                {
+                    if (!string.IsNullOrEmpty(objFromDb.DriverLicenseImage))
+                    {
+                        string oldPath = Path.Combine(_webHostEnvironment.WebRootPath, objFromDb.DriverLicenseImage.TrimStart('\\'));
+                        if (System.IO.File.Exists(oldPath)) System.IO.File.Delete(oldPath);
+                    }
+                    string fileName = UploadFile(vm.File);
+                    objFromDb.DriverLicenseImage = fileName;
+                }
+
+                _userRepository.Update(objFromDb);
+                _userRepository.Save();
+
+                _toastNotification.AddSuccessToastMessage("Kullanıcı güncellendi.");
+                LogToDb("Kullanıcı Güncelleme", $"{objFromDb.UserName} kullanıcısı güncellendi.");
+            }
+
+            return RedirectToAction("UserList");
+        }
+
+        [Authorize(Roles = "2")]
+        public IActionResult DeleteUser(int id)
+        {
+            var user = _userRepository.GetById(id);
+            if (user != null)
+            {
+                string userInfo = $"{user.UserName} ({user.Email})";
+
+                if (!string.IsNullOrEmpty(user.DriverLicenseImage))
+                {
+                    string oldPath = Path.Combine(_webHostEnvironment.WebRootPath, user.DriverLicenseImage.TrimStart('\\'));
+                    if (System.IO.File.Exists(oldPath)) System.IO.File.Delete(oldPath);
+                }
+
+                _userRepository.Remove(user);
+                _userRepository.Save();
+
+                _toastNotification.AddWarningToastMessage("Kullanıcı silindi.");
+
+                LogToDb("Kullanıcı Silme", $"Kullanıcı silindi: {userInfo}");
+            }
+            return RedirectToAction("UserList");
+        }
+
+        // --- YARDIMCI METOD ---
+        [Authorize(Roles = "2")]
+        private string UploadFile(IFormFile file)
+        {
+            string wwwRootPath = _webHostEnvironment.WebRootPath;
+            string fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+            string licensePath = Path.Combine(wwwRootPath, @"images\licenses");
+
+            if (!Directory.Exists(licensePath)) Directory.CreateDirectory(licensePath);
+
+            using (var fileStream = new FileStream(Path.Combine(licensePath, fileName), FileMode.Create))
+            {
+                file.CopyTo(fileStream);
+            }
+
+            return @"\images\licenses\" + fileName;
+        }
+
+
+        // --- LOGLAMA YARDIMCISI ---
         [Authorize(Roles = "2")]
         private void LogToDb(string actionType, string description)
         {
@@ -907,6 +1034,10 @@ namespace CarRentalPortal01.Controllers
             return View(logs);
         }
 
+
+        // ==========================================
+        //         KAMPANYALAR VE İNDİRİMLER SAYFASI
+        // ==========================================
         // --- KAMPANYA / İNDİRİM YÖNETİMİ ---
         [Authorize(Roles = "2")]
         public IActionResult CampaignList()
@@ -973,6 +1104,11 @@ namespace CarRentalPortal01.Controllers
                 }
 
                 _context.SaveChanges();
+
+                if (discount.Id == 0)
+                    LogToDb("Kampanya Ekleme", $"Kampanya: {discount.Code} (%{discount.DiscountRate}) eklendi.");
+                else
+                    LogToDb("Kampanya Güncelleme", $"Kampanya güncellendi: {discount.Code}");
                 return RedirectToAction("CampaignList");
             }
             return View(discount);
@@ -991,14 +1127,16 @@ namespace CarRentalPortal01.Controllers
             return RedirectToAction("CampaignList");
         }
 
-        // --- FİNANS VE GİDER YÖNETİMİ ---
 
+        // ==========================================
+        //         FİNANS VE GİDER YÖNETİMİ SAYFASI
+        // ==========================================
         [Authorize(Roles = "2")]
         public IActionResult ExpenseList()
         {
             List<FinancialItemViewModel> fullList = new List<FinancialItemViewModel>();
 
-            // 1. MANUEL GİDERLERİ EKLE
+            // 1. Manuel Giderler
             var manualExpenses = _context.Expenses.ToList();
             foreach (var item in manualExpenses)
             {
@@ -1008,72 +1146,74 @@ namespace CarRentalPortal01.Controllers
                     Amount = item.Amount,
                     Date = item.Date,
                     Type = "Sabit Gider",
-                    ColorClass = "text-danger"
+                    ColorClass = "text-danger",
+                    Details = item.Description ?? "-"
                 });
             }
 
-            // 2. BAKIM MASRAFLARINI EKLE
+            // 2. Bakımlar (Araç Plakası, Bakım Türü)
             var maintenances = _context.VehicleMaintenances.Include(x => x.Vehicle).Where(x => x.Cost > 0).ToList();
             foreach (var item in maintenances)
             {
                 fullList.Add(new FinancialItemViewModel
                 {
-                    Title = $"{item.Vehicle.LicensePlate} - Bakım",
+                    Title = "Araç Bakım Gideri",
                     Amount = item.Cost,
                     Date = item.StartDate,
                     Type = "Araç Bakım",
-                    ColorClass = "text-danger"
+                    ColorClass = "text-danger",
+                    Details = $"{item.Vehicle.Brand} {item.Vehicle.Model} ({item.Vehicle.LicensePlate}) - {item.MaintenanceType}"
                 });
             }
 
-            // 3. PERSONEL MAAŞLARINI EKLE
+            // 3. Personel Maaşları (Personel Bilgisi)
             var staffList = _context.Users.Where(u => u.Role == 1 && u.Salary > 0).ToList();
             foreach (var staff in staffList)
             {
                 fullList.Add(new FinancialItemViewModel
                 {
-                    Title = $"{staff.UserName} (Personel Maaşı)",
+                    Title = "Personel Maaş Ödemesi",
                     Amount = staff.Salary,
                     Date = DateTime.Now,
                     Type = "Maaş",
-                    ColorClass = "text-danger"
+                    ColorClass = "text-danger",
+                    Details = $"Personel: {staff.UserName} | Tel: {staff.PhoneNumber} | Email: {staff.Email}"
                 });
             }
 
-            // --- KİRALAMA GELİRLERİ ---
+            // 4. Kiralamalar (Müşteri Bilgisi)
             var rentals = _context.Rentals.Include(r => r.Vehicle).Include(r => r.User).ToList();
             foreach (var item in rentals)
             {
                 fullList.Add(new FinancialItemViewModel
                 {
-                    Title = $"Kiralama: {item.Vehicle.Brand} {item.Vehicle.Model} ({item.Vehicle.LicensePlate})",
+                    Title = $"Kiralama Geliri",
                     Amount = item.TotalPrice,
-                    Date = item.StartDate, 
-                    Type = "Gelir (Kiralama)",
-                    ColorClass = "text-success"
+                    Date = item.StartDate,
+                    Type = "Gelir",
+                    ColorClass = "text-success",
+                    Details = $"Müşteri: {item.User.UserName} ({item.User.PhoneNumber}) | Araç: {item.Vehicle.Brand} {item.Vehicle.Model} ({item.Vehicle.LicensePlate}) | Tarih: {item.StartDate:dd.MM} - {item.EndDate:dd.MM}"
                 });
             }
 
-            // --- HESAPLAMALAR ---
+            // ... (Hesaplama kısımları aynı kalacak) ...
             decimal totalIncome = _context.Rentals.Sum(x => x.TotalPrice);
-
             decimal totalExistingExpense = fullList.Where(x => x.ColorClass == "text-danger").Sum(x => x.Amount);
-
             decimal preProfit = totalIncome - totalExistingExpense;
 
-            // 4. PATRON MAAŞI
+            // 5. Patron Payı (%80)
             decimal patronShare = 0;
             if (preProfit > 0)
             {
                 patronShare = preProfit * 0.80m;
-
                 fullList.Add(new FinancialItemViewModel
                 {
-                    Title = "Patron Hakedişi (%80 Kâr Payı)",
+                    Title = "Patron Payı (%80)",
                     Amount = patronShare,
                     Date = DateTime.Now,
                     Type = "Patron Payı",
-                    ColorClass = "text-warning font-weight-bold"
+                    ColorClass = "text-danger font-weight-bold",
+                    Details = $"Yönetici Payı: {User.Identity.Name} hesabına aktarılacak tutar."
                 });
             }
 
