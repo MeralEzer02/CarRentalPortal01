@@ -296,60 +296,107 @@ namespace CarRentalPortal01.Controllers
             return View(maintenances);
         }
 
-        // --- 2. BAKIM EKLEME (MODAL AÇMA - GET) ---
+        // --- 2. BAKIM EKLEME / DÜZENLEME ---
         [HttpGet]
         [Authorize(Roles = "2")]
-        public IActionResult AddMaintenance(int? vehicleId)
+        public IActionResult AddMaintenance(int? id, int? vehicleId)
         {
             VehicleMaintenance vm = new VehicleMaintenance
             {
-                StartDate = DateTime.Now
+                StartDate = DateTime.Now,
+                EndDate = DateTime.Now.AddDays(2) 
             };
 
-            if (vehicleId.HasValue && vehicleId.Value > 0)
+            if (id.HasValue && id.Value > 0)
+            {
+                vm = _context.VehicleMaintenances.Find(id.Value);
+                if (vm == null) return NotFound();
+            }
+            else if (vehicleId.HasValue && vehicleId.Value > 0)
             {
                 vm.VehicleId = vehicleId.Value;
             }
-            else
-            {
-                ViewBag.VehicleList = _context.Vehicles
-                    .Select(v => new SelectListItem
-                    {
-                        Text = $"{v.Brand} {v.Model} - {v.LicensePlate}",
-                        Value = v.Id.ToString()
-                    }).ToList();
-            }
+
+            ViewBag.VehicleList = _context.Vehicles
+                .Select(v => new SelectListItem
+                {
+                    Text = $"{v.Brand} {v.Model} - {v.LicensePlate}",
+                    Value = v.Id.ToString()
+                }).ToList();
 
             return PartialView("_AddMaintenancePartial", vm);
         }
 
-        // --- 3. BAKIM KAYDETME (POST) ---
+        // --- 3. BAKIM KAYDETME ---
         [HttpPost]
         [Authorize(Roles = "2")]
         [ValidateAntiForgeryToken]
         public IActionResult AddMaintenance(VehicleMaintenance maintenance)
         {
+            ModelState.Remove("Vehicle");
+
             if (ModelState.IsValid)
             {
                 var vehicle = _context.Vehicles.Find(maintenance.VehicleId);
-                if (vehicle != null)
+
+                if (maintenance.Id == 0)
                 {
-                    vehicle.IsAvailable = false;
-                    _context.Vehicles.Update(vehicle);
+                    if (vehicle != null)
+                    {
+                        vehicle.IsAvailable = false;
+                        _context.Vehicles.Update(vehicle);
+                    }
+                    _context.VehicleMaintenances.Add(maintenance);
+                    LogToDb("Bakım Başlangıcı", $"{vehicle?.LicensePlate} servise alındı. Tür: {maintenance.MaintenanceType}");
+                    _toastNotification.AddSuccessToastMessage("Bakım kaydı oluşturuldu.");
+                }
+                else
+                {
+                    _context.VehicleMaintenances.Update(maintenance);
+
+                    if (maintenance.IsCompleted && vehicle != null)
+                    {
+                        vehicle.IsAvailable = true;
+                        _context.Vehicles.Update(vehicle);
+                    }
+
+                    LogToDb("Bakım Güncelleme", $"{vehicle?.LicensePlate} bakım kaydı güncellendi.");
+                    _toastNotification.AddSuccessToastMessage("Bakım bilgileri güncellendi.");
                 }
 
-                _context.VehicleMaintenances.Add(maintenance);
                 _context.SaveChanges();
-
-                _toastNotification.AddSuccessToastMessage("Araç bakıma alındı.");
-
-                string plaka = vehicle != null ? vehicle.LicensePlate : "Bilinmeyen Araç";
-                LogToDb("Bakım Başlangıcı", $"{plaka} plakalı araç servise alındı. Tür: {maintenance.MaintenanceType}");
-
                 return RedirectToAction("MaintenanceList");
             }
 
             return RedirectToAction("MaintenanceList");
+        }
+
+        // --- DURUM DEĞİŞTİRME ---
+        [HttpPost]
+        [Authorize(Roles = "2")]
+        public IActionResult ToggleMaintenanceStatus(int id)
+        {
+            var maintenance = _context.VehicleMaintenances.Include(m => m.Vehicle).FirstOrDefault(m => m.Id == id);
+            if (maintenance == null) return Json(new { success = false, message = "Kayıt bulunamadı." });
+
+            maintenance.IsCompleted = !maintenance.IsCompleted;
+
+            if (maintenance.IsCompleted) maintenance.EndDate = DateTime.Now;
+            else maintenance.EndDate = null;
+
+            if (maintenance.Vehicle != null)
+            {
+                maintenance.Vehicle.IsAvailable = maintenance.IsCompleted;
+                _context.Vehicles.Update(maintenance.Vehicle);
+            }
+
+            _context.VehicleMaintenances.Update(maintenance);
+            _context.SaveChanges();
+
+            string durumMesaji = maintenance.IsCompleted ? "Tamamlandı" : "Tekrar Servise Alındı";
+            LogToDb("Bakım Durum Değişikliği", $"{maintenance.Vehicle?.LicensePlate} bakım durumu değişti: {durumMesaji}");
+
+            return Json(new { success = true, isCompleted = maintenance.IsCompleted });
         }
 
         // --- 4. BAKIMI BİTİRME (SERVİSTEN ÇIKARMA) ---
