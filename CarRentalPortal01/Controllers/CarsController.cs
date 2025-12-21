@@ -14,17 +14,36 @@ namespace CarRentalPortal01.Controllers
             _context = context;
         }
 
-        // ARAÇ LİSTESİ SAYFASI
-        public IActionResult Index()
+        // ARAÇ LİSTESİ
+        public IActionResult Index(string search, int page = 1)
         {
-            var allCars = _context.Vehicles
-                .Where(v => v.IsAvailable)
+            var carsQuery = _context.Vehicles.Where(v => v.IsAvailable).AsQueryable();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                carsQuery = carsQuery.Where(x => x.Brand.Contains(search) || x.Model.Contains(search));
+            }
+
+            int pageSize = 6; // Her sayfada kaç araç görünsün?
+            int totalCars = carsQuery.Count(); // Toplam uygun araç sayısı
+            int totalPages = (int)Math.Ceiling((double)totalCars / pageSize); // Toplam sayfa sayısı
+
+            // Sayfa sınırlarını kontrol et
+            if (page < 1) page = 1;
+            if (page > totalPages && totalPages > 0) page = totalPages;
+
+            var pagedCars = carsQuery
                 .OrderByDescending(v => v.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToList();
 
-            return View(allCars);
-        }
-        // ARAÇ DETAY SAYFASI
+            ViewBag.TotalPages = totalPages;
+            ViewBag.CurrentPage = page;
+            ViewBag.Search = search;
+
+            return View(pagedCars);
+        }        // ARAÇ DETAY SAYFASI
         public IActionResult CarDetail(int id)
         {
             // 1. Seçilen Aracı Bul
@@ -32,8 +51,6 @@ namespace CarRentalPortal01.Controllers
 
             if (car == null) return NotFound();
 
-            // 2. Varyantları (Diğer Renkleri) Bul
-            // Kural: Grup Kodu aynı olsun AMA araç kendisi olmasın VE o araç da müsait olsun.
             var variants = new List<Vehicle>();
 
             if (!string.IsNullOrEmpty(car.VariantGroupId))
@@ -43,7 +60,6 @@ namespace CarRentalPortal01.Controllers
                     .ToList();
             }
 
-            // Varyantları ViewBag ile sayfaya taşıyoruz
             ViewBag.Variants = variants;
 
             return View(car);

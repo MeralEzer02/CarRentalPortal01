@@ -22,8 +22,27 @@
 
 <section class="ftco-section bg-light">
     <div class="container">
-        <div class="row">
 
+        <div class="row justify-content-center mb-5">
+            <div class="col-md-8">
+                <form asp-controller="Cars" asp-action="Index" method="get" class="search-form">
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control p-4"
+                               placeholder="Hangi aracı arıyorsunuz? (Örn: BMW, Egea...)"
+                               value="@ViewBag.Search">
+                        <div class="input-group-append">
+                            <button class="btn btn-primary px-4" type="submit">Ara</button>
+                            @if (!string.IsNullOrEmpty(ViewBag.Search))
+                            {
+                                <a href="/Cars/Index" class="btn btn-outline-danger px-3" title="Filtreyi Temizle">X</a>
+                            }
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="row">
             @if (Model != null && Model.Any())
             {
                 @foreach (var car in Model)
@@ -33,17 +52,15 @@
                             <div class="img rounded d-flex align-items-end"
                                  style="background-image: url('/@car.ImageUrl');">
                             </div>
-
                             <div class="text">
-                                <h2 class="mb-0"><a href="#">@car.Brand @car.Model</a></h2>
+                                <h2 class="mb-0"><a href="/Cars/CarDetail/@car.Id">@car.Brand @car.Model</a></h2>
                                 <div class="d-flex mb-3">
                                     <span class="cat">@car.GearType / @car.FuelType</span>
                                     <p class="price ml-auto">@car.DailyRentalRate.ToString("C0") <span>/gün</span></p>
                                 </div>
-
                                 <p class="d-flex mb-0 d-block">
-                                    <a href="#" class="btn btn-primary py-2 mr-1">Kirala</a>
-                                    <a asp-controller="Cars" asp-action="CarDetail" asp-route-id="@car.Id" class="btn btn-secondary py-2 ml-1">Detaylar</a>
+                                    <a href="/Cars/CarDetail/@car.Id" class="btn btn-primary py-2 mr-1">Kirala</a>
+                                    <a href="/Cars/CarDetail/@car.Id" class="btn btn-secondary py-2 ml-1">Detaylar</a>
                                 </p>
                             </div>
                         </div>
@@ -54,29 +71,41 @@
             {
                 <div class="col-12 text-center py-5">
                     <div class="alert alert-warning">
-                        <h4>Şu anda kiralık uygun araç bulunmamaktadır.</h4>
-                        <p>Lütfen daha sonra tekrar deneyiniz.</p>
+                        <h4>Aradığınız kriterlere uygun araç bulunamadı.</h4>
+                        <p>Lütfen farklı bir arama yapmayı deneyin.</p>
+                        <a href="/Cars/Index" class="btn btn-primary mt-2">Tüm Araçları Göster</a>
                     </div>
                 </div>
             }
-
         </div>
 
-        <div class="row mt-5">
-            <div class="col text-center">
-                <div class="block-27">
-                    <ul>
-                        <li><a href="#">&lt;</a></li>
-                        <li class="active"><span>1</span></li>
-                        <li><a href="#">2</a></li>
-                        <li><a href="#">3</a></li>
-                        <li><a href="#">4</a></li>
-                        <li><a href="#">5</a></li>
-                        <li><a href="#">&gt;</a></li>
-                    </ul>
+        @if (ViewBag.TotalPages > 1)
+        {
+            <div class="row mt-5">
+                <div class="col text-center">
+                    <div class="block-27">
+                        <ul>
+                            @if (ViewBag.CurrentPage > 1)
+                            {
+                                <li><a href="/Cars/Index?page=@(ViewBag.CurrentPage - 1)&search=@ViewBag.Search">&lt;</a></li>
+                            }
+
+                            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                            {
+                                <li class="@(i == ViewBag.CurrentPage ? "active" : "")">
+                                    <a href="/Cars/Index?page=@i&search=@ViewBag.Search">@i</a>
+                                </li>
+                            }
+
+                            @if (ViewBag.CurrentPage < ViewBag.TotalPages)
+                            {
+                                <li><a href="/Cars/Index?page=@(ViewBag.CurrentPage + 1)&search=@ViewBag.Search">&gt;</a></li>
+                            }
+                        </ul>
+                    </div>
                 </div>
             </div>
-        </div>
+        }
 
     </div>
 </section>
