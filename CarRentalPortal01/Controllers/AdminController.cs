@@ -317,8 +317,8 @@ namespace CarRentalPortal01.Controllers
             // --- B) NORMAL LİSTELEME ---
             var maintenances = _context.VehicleMaintenances
                 .Include(m => m.Vehicle)
-                .OrderBy(m => m.IsCompleted)        // Önce devam edenler
-                .ThenByDescending(m => m.StartDate) // Sonra tarihe göre
+                .OrderBy(m => m.IsCompleted)       
+                .ThenByDescending(m => m.StartDate)
                 .ToList();
 
             return View(maintenances);
@@ -1283,7 +1283,7 @@ namespace CarRentalPortal01.Controllers
                 patronShare = preProfit * 0.80m;
                 fullList.Add(new FinancialItemViewModel
                 {
-                    Title = "Patron Payı (%80)",
+                    Title = "Patron Payı",
                     Amount = patronShare,
                     Date = DateTime.Now,
                     Type = "Patron Payı",

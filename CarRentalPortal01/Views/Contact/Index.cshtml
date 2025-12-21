@@ -1,0 +1,105 @@
+﻿@{
+    ViewData["Title"] = "İletişim";
+    Layout = "~/Views/Shared/_UserLayout.cshtml";
+}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+<section class="hero-wrap hero-wrap-2 js-fullheight" style="background-image: url('/frontend/images/bg_3.jpg');" data-stellar-background-ratio="0.5">
+    <div class="overlay"></div>
+    <div class="container">
+        <div class="row no-gutters slider-text js-fullheight align-items-end justify-content-start">
+            <div class="col-md-9 ftco-animate pb-5">
+                <p class="breadcrumbs">
+                    <span class="mr-2"><a href="/Home/Index">Anasayfa <i class="ion-ios-arrow-forward"></i></a></span>
+                    <span>İletişim <i class="ion-ios-arrow-forward"></i></span>
+                </p>
+                <h1 class="mb-3 bread">Bize Ulaşın</h1>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="ftco-section contact-section">
+    <div class="container">
+        <div class="row d-flex mb-5 contact-info">
+            <div class="col-md-4">
+                <div class="row mb-5">
+                    <div class="col-md-12">
+                        <div class="border w-100 p-4 rounded mb-2 d-flex">
+                            <div class="icon mr-3">
+                                <span class="icon-map-o"></span>
+                            </div>
+                            <p><span>Adres:</span> Şirinyalı Mh. Lara Cd. No:123, Muratpaşa / Antalya</p>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="border w-100 p-4 rounded mb-2 d-flex">
+                            <div class="icon mr-3">
+                                <span class="icon-mobile-phone"></span>
+                            </div>
+                            <p><span>Telefon:</span> <a href="tel://1234567920">+90 242 123 45 67</a></p>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="border w-100 p-4 rounded mb-2 d-flex">
+                            <div class="icon mr-3">
+                                <span class="icon-envelope-o"></span>
+                            </div>
+                            <p><span>E-posta:</span> <a href="mailto:info@carbook.com">info@carbook.com</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8 block-9 mb-md-5">
+                <form action="#" class="bg-light p-5 contact-form">
+                    <div class="form-group">
+                        <input type="text" class="form-control" placeholder="Adınız Soyadınız">
+                    </div>
+                    <div class="form-group">
+                        <input type="text" class="form-control" placeholder="E-posta Adresiniz">
+                    </div>
+                    <div class="form-group">
+                        <input type="text" class="form-control" placeholder="Konu">
+                    </div>
+                    <div class="form-group">
+                        <textarea name="" id="" cols="30" rows="7" class="form-control" placeholder="Mesajınız"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <input type="submit" value="Mesaj Gönder" class="btn btn-primary py-3 px-5">
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-md-12">
+                <div id="map" class="bg-white" style="height: 450px; width: 100%; border: 1px solid #ddd;"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            // 1. Antalya Koordinatları (Muratpaşa civarı)
+            var lat = 36.8841;
+            var lng = 30.7056;
+
+            var map = L.map('map').setView([lat, lng], 15); // Yakınlaştırma seviyesi
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            L.marker([lat, lng]).addTo(map)
+                .bindPopup('<b>CarBook Antalya</b><br>Akdeniz\'in en iyi araçları burada! ☀️🚗')
+                .openPopup();
+        });
+    </script>
+}

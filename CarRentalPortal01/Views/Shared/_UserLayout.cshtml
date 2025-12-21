@@ -32,10 +32,10 @@
             <div class="collapse navbar-collapse" id="ftco-nav">
                 <ul class="navbar-nav ml-auto">
                     <li class="nav-item active"><a href="/Home/Index" class="nav-link">Anasayfa</a></li>
-                    <li class="nav-item"><a href="#" class="nav-link">Hakkımızda</a></li>
-                    <li class="nav-item"><a href="#" class="nav-link">Hizmetler</a></li>
-                    <li class="nav-item"><a href="#" class="nav-link">Araçlar</a></li>
-                    <li class="nav-item"><a href="#" class="nav-link">İletişim</a></li>
+                    <li class="nav-item"><a href="/About/Index" class="nav-link">Hakkımızda</a></li>
+                    <li class="nav-item"><a href="/Cars/Index" class="nav-link">Araçlar</a></li>
+                    <li class="nav-item"><a href="/Services/Index" class="nav-link">Hizmetler</a></li>
+                    <li class="nav-item"><a href="/Contact/Index" class="nav-link">İletişim</a></li>
                 </ul>
             </div>
         </div>
@@ -113,5 +113,6 @@
     <script src="/frontend/js/scrollax.min.js"></script>
     <script src="/frontend/js/main.js"></script>
 
+    @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

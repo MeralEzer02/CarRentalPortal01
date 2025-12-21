@@ -1,0 +1,295 @@
+﻿@model CarRentalPortal01.Models.Vehicle
+
+@{
+    ViewData["Title"] = $"{Model.Brand} {Model.Model} Detayları";
+    Layout = "~/Views/Shared/_UserLayout.cshtml";
+}
+
+<section class="hero-wrap hero-wrap-2 js-fullheight" style="background-image: url('/frontend/images/bg_3.jpg');" data-stellar-background-ratio="0.5">
+    <div class="overlay"></div>
+    <div class="container">
+        <div class="row no-gutters slider-text js-fullheight align-items-end justify-content-start">
+            <div class="col-md-9 ftco-animate pb-5">
+                <p class="breadcrumbs">
+                    <span class="mr-2"><a href="/Home/Index">Anasayfa <i class="ion-ios-arrow-forward"></i></a></span>
+                    <span class="mr-2"><a href="/Cars/Index">Araçlar <i class="ion-ios-arrow-forward"></i></a></span>
+                    <span>Detay <i class="ion-ios-arrow-forward"></i></span>
+                </p>
+                <h1 class="mb-3 bread">Araç Detayları</h1>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="ftco-section ftco-car-details">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-12">
+                <div class="car-details">
+                    <div class="img rounded" style="background-image: url('/@Model.ImageUrl');"></div>
+                    <div class="text text-center">
+                        <span class="subheading">@Model.Brand</span>
+                        <h2>@Model.Brand @Model.Model</h2>
+                        <span class="subheading text-muted">@Model.Color Renk</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md d-flex align-self-stretch ftco-animate">
+                <div class="media block-6 services">
+                    <div class="media-body py-md-4">
+                        <div class="d-flex mb-3 align-items-center">
+                            <div class="icon d-flex align-items-center justify-content-center"><span class="flaticon-dashboard"></span></div>
+                            <div class="text">
+                                <h3 class="heading mb-0 pl-3">
+                                    Kilometre
+                                    <span>20,000</span>
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md d-flex align-self-stretch ftco-animate">
+                <div class="media block-6 services">
+                    <div class="media-body py-md-4">
+                        <div class="d-flex mb-3 align-items-center">
+                            <div class="icon d-flex align-items-center justify-content-center"><span class="flaticon-pistons"></span></div>
+                            <div class="text">
+                                <h3 class="heading mb-0 pl-3">
+                                    Vites
+                                    <span>@Model.GearType</span>
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md d-flex align-self-stretch ftco-animate">
+                <div class="media block-6 services">
+                    <div class="media-body py-md-4">
+                        <div class="d-flex mb-3 align-items-center">
+                            <div class="icon d-flex align-items-center justify-content-center"><span class="flaticon-car-seat"></span></div>
+                            <div class="text">
+                                <h3 class="heading mb-0 pl-3">
+                                    Koltuk
+                                    <span>5 Yetişkin</span>
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md d-flex align-self-stretch ftco-animate">
+                <div class="media block-6 services">
+                    <div class="media-body py-md-4">
+                        <div class="d-flex mb-3 align-items-center">
+                            <div class="icon d-flex align-items-center justify-content-center"><span class="flaticon-backpack"></span></div>
+                            <div class="text">
+                                <h3 class="heading mb-0 pl-3">
+                                    Bagaj
+                                    <span>4 Çanta</span>
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md d-flex align-self-stretch ftco-animate">
+                <div class="media block-6 services">
+                    <div class="media-body py-md-4">
+                        <div class="d-flex mb-3 align-items-center">
+                            <div class="icon d-flex align-items-center justify-content-center"><span class="flaticon-diesel"></span></div>
+                            <div class="text">
+                                <h3 class="heading mb-0 pl-3">
+                                    Yakıt
+                                    <span>@Model.FuelType</span>
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12 pills">
+                <div class="bd-example bd-example-tabs">
+                    <div class="d-flex justify-content-center">
+                        <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+                            <li class="nav-item">
+                                <a class="nav-link active" id="pills-description-tab" data-toggle="pill" href="#pills-description" role="tab" aria-controls="pills-description" aria-expanded="true">Araç Özellikleri</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" id="pills-manufacturer-tab" data-toggle="pill" href="#pills-manufacturer" role="tab" aria-controls="pills-manufacturer" aria-expanded="true">Açıklama</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" id="pills-review-tab" data-toggle="pill" href="#pills-review" role="tab" aria-controls="pills-review" aria-expanded="true">Yorumlar</a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="tab-content" id="pills-tabContent">
+
+                        <div class="tab-pane fade show active" id="pills-description" role="tabpanel" aria-labelledby="pills-description-tab">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <ul class="features">
+                                        <li class="check"><span class="ion-ios-checkmark"></span>Klima</li>
+                                        <li class="check"><span class="ion-ios-checkmark"></span>Çocuk Kilidi</li>
+                                        <li class="check"><span class="ion-ios-checkmark"></span>GPS Navigasyon</li>
+                                        <li class="check"><span class="ion-ios-checkmark"></span>Geniş Bagaj</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <ul class="features">
+                                        <li class="check"><span class="ion-ios-checkmark"></span>Emniyet Kemeri</li>
+                                        <li class="check"><span class="ion-ios-checkmark"></span>Bluetooth</li>
+                                        <li class="check"><span class="ion-ios-checkmark"></span>USB Girişi</li>
+                                        <li class="remove"><span class="ion-ios-close"></span>Yatak (Yok)</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <ul class="features">
+                                        <li class="check"><span class="ion-ios-checkmark"></span>Ses Sistemi</li>
+                                        <li class="check"><span class="ion-ios-checkmark"></span>Uzaktan Kilitleme</li>
+                                        <li class="check"><span class="ion-ios-checkmark"></span>İlk Yardım Seti</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="pills-manufacturer" role="tabpanel" aria-labelledby="pills-manufacturer-tab">
+                            <p>
+                                @if (!string.IsNullOrEmpty(Model.Description))
+                                {
+                                    @Model.Description
+                                }
+                                else
+                                {
+                                    <span>Bu araç için henüz detaylı açıklama girilmemiştir.</span>
+                                }
+                            </p>
+                        </div>
+
+                        <div class="tab-pane fade" id="pills-review" role="tabpanel" aria-labelledby="pills-review-tab">
+                            <div class="row">
+                                <div class="col-md-7">
+                                    <h3 class="head">3 Yorum</h3>
+                                    <div class="review d-flex">
+                                        <div class="user-img" style="background-image: url('/frontend/images/person_1.jpg')"></div>
+                                        <div class="desc">
+                                            <h4>
+                                                <span class="text-left">Ahmet Yılmaz</span>
+                                                <span class="text-right">14 Mart 2025</span>
+                                            </h4>
+                                            <p class="star">
+                                                <span>
+                                                    <i class="ion-ios-star"></i><i class="ion-ios-star"></i><i class="ion-ios-star"></i><i class="ion-ios-star"></i><i class="ion-ios-star"></i>
+                                                </span>
+                                            </p>
+                                            <p>Araç çok temizdi ve sürüşü çok keyifliydi. Kesinlikle tavsiye ederim.</p>
+                                        </div>
+                                    </div>
+                                    <div class="review d-flex">
+                                        <div class="user-img" style="background-image: url('/frontend/images/person_2.jpg')"></div>
+                                        <div class="desc">
+                                            <h4>
+                                                <span class="text-left">Ayşe Demir</span>
+                                                <span class="text-right">20 Şubat 2025</span>
+                                            </h4>
+                                            <p class="star">
+                                                <span>
+                                                    <i class="ion-ios-star"></i><i class="ion-ios-star"></i><i class="ion-ios-star"></i><i class="ion-ios-star"></i><i class="ion-ios-star"></i>
+                                                </span>
+                                            </p>
+                                            <p>Yakıt tüketimi oldukça ekonomikti. Teşekkürler.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-5">
+                                    <div class="rating-wrap">
+                                        <h3 class="head">Puan Durumu</h3>
+                                        <div class="wrap">
+                                            <p class="star">
+                                                <span>
+                                                    <i class="ion-ios-star"></i><i class="ion-ios-star"></i><i class="ion-ios-star"></i><i class="ion-ios-star"></i><i class="ion-ios-star"></i>
+                                                    (98%)
+                                                </span>
+                                                <span>20 Yorum</span>
+                                            </p>
+                                            <p class="star">
+                                                <span>
+                                                    <i class="ion-ios-star"></i><i class="ion-ios-star"></i><i class="ion-ios-star"></i><i class="ion-ios-star"></i><i class="ion-ios-star"></i>
+                                                    (85%)
+                                                </span>
+                                                <span>10 Yorum</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@if (ViewBag.Variants != null && ((List<CarRentalPortal01.Models.Vehicle>)ViewBag.Variants).Count > 0)
+{
+    <section class="ftco-section ftco-no-pt mt-5">
+        <div class="container">
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-12 heading-section text-center ftco-animate">
+                    <span class="subheading">Alternatifler</span>
+                    <h2 class="mb-2">Bu Aracın Diğer Renkleri</h2>
+                </div>
+            </div>
+            <div class="row">
+                @foreach (var variant in (List<CarRentalPortal01.Models.Vehicle>)ViewBag.Variants)
+                {
+                    <div class="col-md-4">
+                        <div class="car-wrap rounded ftco-animate">
+                            <div class="img rounded d-flex align-items-end"
+                                 style="background-image: url('/@variant.ImageUrl'); height: 200px;">
+                            </div>
+                            <div class="text p-2 text-center">
+                                <h2 class="mb-0 fs-6"><a href="/Cars/CarDetail/@variant.Id">@variant.Brand @variant.Model</a></h2>
+                                <span class="text-muted small">@variant.Color Renk</span>
+                                <div class="mt-2">
+                                    <a href="/Cars/CarDetail/@variant.Id" class="btn btn-sm btn-outline-primary w-100">İncele</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+<section class="ftco-section ftco-no-pt">
+    <div class="container text-center">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="alert alert-info">
+                    <h3 class="mb-3">Bu aracı beğendiniz mi?</h3>
+                    <p class="mb-4">Günlük <strong>@Model.DailyRentalRate.ToString("C0")</strong> fiyatıyla hemen kiralayın.</p>
+
+                    <a href="#" class="btn btn-primary btn-lg py-3 px-5">Hemen Kirala</a>
+
+                    <a href="/Cars/Index" class="btn btn-secondary btn-lg py-3 px-5">Diğer Araçlara Bak</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

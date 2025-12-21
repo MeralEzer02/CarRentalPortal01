@@ -1,23 +1,102 @@
-﻿@model CarRentalPortal01.ViewModels.DashboardViewModel
+﻿@using CarRentalPortal01.Models
+@using CarRentalPortal01.Data
+@using Microsoft.EntityFrameworkCore
+@inject CarRentalDbContext _context
 
 @{
     ViewData["Title"] = "Panel Özeti";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    // --- 1. GARANTİ HESAPLAMALAR (Matematiksel Doğrulama) ---
+
+    // Toplam Araç Sayısı
+    int totalCars = _context.Vehicles.Count();
+
+    // AKTİF KİRALAMALAR:
+    // Başlangıç tarihi geçmiş (veya bugün) VE Bitiş tarihi gelmemiş (veya bugün) olanlar.
+    // Yani şu an yolda olan araçlar.
+    int activeRentals = 0;
+    if (_context.Rentals.Any())
+    {
+        activeRentals = _context.Rentals.Count(r => r.StartDate <= DateTime.Now && r.EndDate >= DateTime.Now);
+    }
+
+    // BAKIMDAKİ ARAÇLAR (Eğer bakım modülü aktifse):
+    // Bakım tablosunda olup 'IsCompleted' olmayanlar
+    int carsInMaintenance = 0;
+    if (_context.VehicleMaintenances.Any())
+    {
+        carsInMaintenance = _context.VehicleMaintenances.Count(m => !m.IsCompleted);
+    }
+
+    // GERÇEK MÜSAİT ARAÇ SAYISI:
+    // Toplam - (Kiradakiler + Bakımdakiler)
+    int availableCars = totalCars - (activeRentals + carsInMaintenance);
+
+    // Eksiye düşerse 0 göster (Veri hatası koruması)
+    if (availableCars < 0) availableCars = 0;
+
+    // Müşteriler
+    int totalUsers = _context.Users.Count(u => u.Role == 0);
+
+    // Toplam Kazanç
+    decimal totalEarnings = 0;
+    if (_context.Rentals.Any())
+    {
+        totalEarnings = _context.Rentals.Sum(r => r.TotalPrice);
+    }
+
+    // --- 2. GRAFİK 1: MARKALAR ---
+    var brandStats = _context.Vehicles
+        .GroupBy(v => v.Brand)
+        .Select(g => new { Name = g.Key, Count = g.Count() })
+        .ToList();
+    var brandNames = brandStats.Select(x => x.Name).ToList();
+    var brandCounts = brandStats.Select(x => x.Count).ToList();
+
+    // --- 3. GRAFİK 2: KATEGORİLER (DÜZELTİLDİ) ---
+    // 'VehicleCategory' tablosuna bağlanıp İSİMLERİ (Name) çekiyoruz.
+    var catStats = _context.Categories
+        .Include(v => v.VehicleCategories) // İlişkili tabloyu dahil et
+        .GroupBy(v => v.Name) // İsme göre grupla
+        .Select(g => new { Name = g.Key, Count = g.Count() })
+        .ToList();
+
+    var catNames = catStats.Select(x => x.Name).ToList();
+    var catCounts = catStats.Select(x => x.Count).ToList();
+
+    // --- 4. PERFORMANS ---
+    string mostPopularCar = "-";
+    string topEarnerCar = "-";
+
+    if (_context.Rentals.Any())
+    {
+        var popularId = _context.Rentals.GroupBy(r => r.VehicleId)
+            .OrderByDescending(g => g.Count()).Select(g => g.Key).FirstOrDefault();
+        var pCar = _context.Vehicles.Find(popularId);
+        if (pCar != null) mostPopularCar = $"{pCar.Brand} {pCar.Model}";
+
+        var earnerId = _context.Rentals.GroupBy(r => r.VehicleId)
+            .OrderByDescending(g => g.Sum(s => s.TotalPrice)).Select(g => g.Key).FirstOrDefault();
+        var eCar = _context.Vehicles.Find(earnerId);
+        if (eCar != null) topEarnerCar = $"{eCar.Brand} {eCar.Model}";
+    }
+
+    var chartColorsList = new string[] { "#4e73df", "#1cc88a", "#36b9cc", "#f6c23e", "#e74a3b", "#858796", "#5a5c69", "#2e59d9" };
 }
 
 <div class="d-sm-flex align-items-center justify-content-between mb-4">
-    <h1 class="h3 mb-0 text-gray-800">Panel İçeriği</h1>
+    <h1 class="h3 mb-0 text-gray-800">Panel Özeti</h1>
 </div>
 
 <div class="row">
-
     <div class="col-xl-3 col-md-6 mb-4">
         <div class="card border-left-primary shadow h-100 py-2">
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Toplam Araç</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalVehicles</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@totalCars</div>
                     </div>
                     <div class="col-auto"><i class="fas fa-car fa-2x text-gray-300"></i></div>
                 </div>
@@ -31,7 +110,7 @@
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Müsait Araçlar</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.AvailableVehicles</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@availableCars</div>
                     </div>
                     <div class="col-auto"><i class="fas fa-check-circle fa-2x text-gray-300"></i></div>
                 </div>
@@ -44,10 +123,10 @@
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Kayıtlı Kullanıcılar</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalUsers</div>
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Kirada Olan</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@activeRentals</div>
                     </div>
-                    <div class="col-auto"><i class="fas fa-users fa-2x text-gray-300"></i></div>
+                    <div class="col-auto"><i class="fas fa-road fa-2x text-gray-300"></i></div>
                 </div>
             </div>
         </div>
@@ -59,7 +138,7 @@
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Toplam Kazanç</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalEarnings.ToString("C0")</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@totalEarnings.ToString("C0")</div>
                     </div>
                     <div class="col-auto"><i class="fas fa-lira-sign fa-2x text-gray-300"></i></div>
                 </div>
@@ -69,100 +148,116 @@
 </div>
 
 <div class="row">
+    <div class="col-lg-6">
+
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Filo Doluluk Durumu</h6>
+            </div>
+            <div class="card-body">
+                <h4 class="small font-weight-bold">
+                    Kullanım Oranı (Kirada + Bakımda)
+                    <span class="float-right">
+                        @if (totalCars > 0)
+                        {
+                            <text>@(((activeRentals + carsInMaintenance) * 100) / totalCars)%</text>
+                        }
+                        else
+                        {
+                            <text>0%</text>
+                        }
+                    </span>
+                </h4>
+                <div class="progress mb-4">
+                    @{
+                        int percentage = totalCars > 0 ? ((activeRentals + carsInMaintenance) * 100) / totalCars : 0;
+                    }
+                    <div class="progress-bar bg-danger" role="progressbar" style="width: @percentage%"
+                         aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div class="text-xs text-muted">
+                    * Kiradaki Araçlar: @activeRentals <br />
+                    * Bakımdaki Araçlar: @carsInMaintenance
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Marka Dağılımı</h6>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-7">
+                        <div class="chart-pie pt-2 pb-2">
+                            <canvas id="brandChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="mt-4 text-left small">
+                            @for (int i = 0; i < brandNames.Count; i++)
+                            {
+                                var color = chartColorsList[i % chartColorsList.Length];
+                                <div class="mb-2">
+                                    <span class="mr-2"><i class="fas fa-circle" style="color: @color;"></i> @brandNames[i]</span>
+                                    <span class="float-right font-weight-bold">@brandCounts[i]</span>
+                                </div>
+                                <hr class="my-1">
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Kategori Dağılımı</h6>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-5">
+                        <div class="mt-4 text-left small">
+                            @for (int i = 0; i < catNames.Count; i++)
+                            {
+                                var color = chartColorsList[i % chartColorsList.Length];
+                                <div class="mb-2">
+                                    <span class="mr-2"><i class="fas fa-circle" style="color: @color;"></i> @catNames[i]</span>
+                                    <span class="float-right font-weight-bold">@catCounts[i]</span>
+                                </div>
+                                <hr class="my-1">
+                            }
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="chart-pie pt-2 pb-2">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
 
     <div class="col-lg-6">
 
         <div class="card shadow mb-4">
             <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Proje Durumu</h6>
-            </div>
-            <br>
-            <div class="card-body">
-                <h4 class="small font-weight-bold">
-                    Araç Doluluk Oranı
-                    <span class="float-right">
-                        @if (Model.TotalVehicles > 0)
-                        {
-                            @(((Model.TotalVehicles - Model.AvailableVehicles) * 100) / Model.TotalVehicles)
-                        }
-%
-                    </span>
-                </h4>
-                <br>
-                @{
-                    int percentage = 0;
-                    if (Model.TotalVehicles > 0)
-                    {
-                        percentage = ((Model.TotalVehicles - Model.AvailableVehicles) * 100) / Model.TotalVehicles;
-                    }
-                }
-                <div class="progress mb-4">
-                    <div class="progress-bar bg-danger" role="progressbar" style="width: @percentage%"
-                         aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-            </div>
-            <br>
-        </div>
-
-        @{
-            var chartColors = new string[] { "#4e73df", "#1cc88a", "#36b9cc", "#f6c23e", "#e74a3b", "#858796", "#5a5c69", "#2e59d9" };
-        }
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold text-primary">Araçların Kategorilere Dağılımı</h6>
-            </div>
-            <div class="card-body">
-              <br>
-                <div class="row align-items-center">
-                    <div class="col-md-7">
-                        <div class="chart-pie pt-2 pb-2">
-                            <canvas id="myPieChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="col-md-5">
-                        <div class="mt-4 text-left small">
-                            @if (Model.CategoryNames != null)
-                            {
-                                for (int i = 0; i < Model.CategoryNames.Count; i++)
-                                {
-                                    var color = chartColors[i % chartColors.Length];
-                                    <div class="mb-2">
-                                        <span class="mr-2">
-                                            <i class="fas fa-circle" style="color: @color;"></i>
-                                            @Model.CategoryNames[i]
-                                        </span>
-                                        <span class="float-right font-weight-bold">@Model.CategoryVehicleCounts[i] Araç</span>
-                                    </div>
-                                    <hr class="my-1">
-                                }
-                            }
-                        </div>
-                    </div>
-                </div>
-                <br>
-            </div>
-        </div>
-
-    </div>
-    <div class="col-lg-6">
-
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-success">Performans Özeti</h6>
-                <a href="/Admin/Reports" class="text-xs font-weight-bold text-success text-uppercase mb-1">DETAYLI RAPOR</a>
             </div>
             <div class="card-body">
                 <div class="mb-3">
-                    <div class="small text-gray-500">Ayın En Popüler Aracı</div>
+                    <div class="small text-gray-500">En Çok Kiralanan Araç</div>
                     <div class="h5 font-weight-bold text-gray-800">
-                        <i class="fas fa-trophy text-warning mr-2"></i> @Model.MostPopularCar
+                        <i class="fas fa-trophy text-warning mr-2"></i> @mostPopularCar
                     </div>
                 </div>
                 <hr>
                 <div>
-                    <div class="small text-gray-500">Ciro Şampiyonu</div>
+                    <div class="small text-gray-500">En Çok Ciro Yapan Araç</div>
                     <div class="h5 font-weight-bold text-gray-800">
-                        <i class="fas fa-money-bill-wave text-success mr-2"></i> @Model.TopEarnerCar
+                        <i class="fas fa-money-bill-wave text-success mr-2"></i> @topEarnerCar
                     </div>
                 </div>
             </div>
@@ -170,8 +265,8 @@
 
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold text-primary">Yaklaşan Kiralamalar</h6>
-                <a href="/Admin/Scheduler" class="text-xs font-weight-bold text-primary text-uppercase mb-1">TÜMÜNÜ GÖR</a>
+                <h6 class="m-0 font-weight-bold text-primary">Kiralama Takvimi</h6>
+                <a href="/Admin/Scheduler" class="text-xs font-weight-bold text-primary text-uppercase mb-1">DETAYLI GÖR</a>
             </div>
             <div class="card-body">
                 <div id='miniCalendar' style="min-height: 320px;"></div>
@@ -180,7 +275,7 @@
 
         <div class="card shadow mb-4">
             <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Geliştirici Notları</h6>
+                <h6 class="m-0 font-weight-bold text-primary">Sistem Durumu</h6>
             </div>
             <div class="card-body">
                 <div class="row align-items-center">
@@ -189,8 +284,8 @@
                              src="~/Admin/img/undraw_posting_photo.svg" alt="...">
                     </div>
                     <div class="col-md-9">
-                        <p>Araç Kiralama Portalı V1.0 sürümü yayında!🏍️🚗</p>
-                        <p class="mb-0">Yönetim paneli üzerinden tüm istatistikleri takip edebilir, yeni araç ekleyebilir ve kiralama durumlarını yönetebilirsiniz.</p>
+                        <p>Sistem aktif ve veri akışı normal. 🚀</p>
+                        <p class="mb-0">Veriler anlık kiralamalara göre hesaplanmaktadır.</p>
                     </div>
                 </div>
             </div>
@@ -199,32 +294,27 @@
     </div>
 </div>
 
-
 @section Scripts {
     <script src="~/Admin/vendor/chart.js/Chart.min.js"></script>
-
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
 
     <script>
-
-
-        // --- 1. PASTA GRAFİĞİ KODLARI ---
-        var categoryLabels = @Html.Raw(Json.Serialize(Model.CategoryNames));
-        var categoryData = @Html.Raw(Json.Serialize(Model.CategoryVehicleCounts));
-
+        // ORTAK RENKLER
         var chartColors = ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796', '#5a5c69', '#2e59d9'];
 
-        var ctx = document.getElementById("myPieChart");
+        // --- 1. MARKA GRAFİĞİ (BrandChart) ---
+        var brandLabels = @Html.Raw(Json.Serialize(brandNames));
+        var brandData = @Html.Raw(Json.Serialize(brandCounts));
+        var ctxBrand = document.getElementById("brandChart");
 
-        if (ctx) {
-            var myPieChart = new Chart(ctx, {
+        if (ctxBrand) {
+            new Chart(ctxBrand, {
                 type: 'doughnut',
                 data: {
-                    labels: categoryLabels,
+                    labels: brandLabels,
                     datasets: [{
-                        data: categoryData,
+                        data: brandData,
                         backgroundColor: chartColors,
-                        hoverBackgroundColor: chartColors,
                         hoverBorderColor: "rgba(234, 236, 244, 1)",
                     }],
                 },
@@ -240,27 +330,54 @@
                         displayColors: true,
                         caretPadding: 10,
                     },
-                    legend: {
-                        display: false,
-                    },
+                    legend: { display: false },
                     cutoutPercentage: 0,
                 },
             });
         }
 
-        // --- 2. MİNİ TAKVİM KODLARI ---
+        // --- 2. KATEGORİ GRAFİĞİ (CategoryChart) ---
+        var catLabels = @Html.Raw(Json.Serialize(catNames));
+        var catData = @Html.Raw(Json.Serialize(catCounts));
+        var ctxCat = document.getElementById("categoryChart");
+
+        if (ctxCat) {
+            new Chart(ctxCat, {
+                type: 'doughnut',
+                data: {
+                    labels: catLabels,
+                    datasets: [{
+                        data: catData,
+                        backgroundColor: chartColors,
+                        hoverBorderColor: "rgba(234, 236, 244, 1)",
+                    }],
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    tooltips: {
+                        backgroundColor: "rgb(255,255,255)",
+                        bodyFontColor: "#858796",
+                        borderColor: '#dddfeb',
+                        borderWidth: 1,
+                        xPadding: 15,
+                        yPadding: 15,
+                        displayColors: true,
+                        caretPadding: 10,
+                    },
+                    legend: { display: false },
+                    cutoutPercentage: 0,
+                },
+            });
+        }
+
+        // --- 3. MİNİ TAKVİM ---
         document.addEventListener('DOMContentLoaded', function() {
             var calendarEl = document.getElementById('miniCalendar');
-
             if (calendarEl) {
                 var miniCalendar = new FullCalendar.Calendar(calendarEl, {
                     initialView: 'listMonth',
                     locale: 'tr',
-                    headerToolbar: {
-                        left: 'prev,next',
-                        center: 'title',
-                        right: ''
-                    },
+                    headerToolbar: { left: 'prev,next', center: 'title', right: '' },
                     height: 350,
                     events: '/Admin/GetCalendarEvents',
                     eventColor: '#1cc88a',
@@ -269,7 +386,6 @@
                         window.location.href = "/Admin/Scheduler";
                     }
                 });
-
                 miniCalendar.render();
             }
         });
