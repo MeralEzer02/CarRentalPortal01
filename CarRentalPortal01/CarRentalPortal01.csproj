@@ -21,4 +21,18 @@
     <PackageReference Include="NToastNotify" Version="8.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="wwwroot\Frontend\css\.DS_Store" />
+    <None Include="wwwroot\Frontend\css\bootstrap\.DS_Store" />
+    <None Include="wwwroot\Frontend\css\css\.DS_Store" />
+    <None Include="wwwroot\Frontend\fonts\.DS_Store" />
+    <None Include="wwwroot\Frontend\fonts\flaticon\.DS_Store" />
+    <None Include="wwwroot\Frontend\fonts\flaticon\font\.DS_Store" />
+    <None Include="wwwroot\Frontend\fonts\ionicons\fonts\.DS_Store" />
+    <None Include="wwwroot\Frontend\images\.DS_Store" />
+    <None Include="wwwroot\Frontend\js\.DS_Store" />
+    <None Include="wwwroot\Frontend\scss\.DS_Store" />
+    <None Include="wwwroot\Frontend\scss\bootstrap\.DS_Store" />
+  </ItemGroup>
+
 </Project>

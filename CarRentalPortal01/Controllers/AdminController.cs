@@ -287,10 +287,38 @@ namespace CarRentalPortal01.Controllers
         [Authorize(Roles = "2")]
         public IActionResult MaintenanceList()
         {
+            var expiredMaintenances = _context.VehicleMaintenances
+                .Include(m => m.Vehicle)
+                .Where(m => !m.IsCompleted && m.EndDate != null && m.EndDate < DateTime.Now)
+                .ToList();
+
+            if (expiredMaintenances.Any())
+            {
+                int count = 0;
+                foreach (var item in expiredMaintenances)
+                {
+                    item.IsCompleted = true;
+
+                    if (item.Vehicle != null)
+                    {
+                        item.Vehicle.IsAvailable = true;
+                        _context.Vehicles.Update(item.Vehicle);
+                    }
+
+                    LogToDb("Otomatik Bakım Bitişi", $"{item.Vehicle?.LicensePlate} süresi dolduğu için sistem tarafından servisten çıkarıldı.");
+                    count++;
+                }
+
+                _context.SaveChanges();
+
+                _toastNotification.AddInfoToastMessage($"{count} aracın bakımı süresi dolduğu için otomatik tamamlandı.");
+            }
+
+            // --- B) NORMAL LİSTELEME ---
             var maintenances = _context.VehicleMaintenances
                 .Include(m => m.Vehicle)
-                .OrderBy(m => m.IsCompleted)
-                .ThenByDescending(m => m.StartDate)
+                .OrderBy(m => m.IsCompleted)        // Önce devam edenler
+                .ThenByDescending(m => m.StartDate) // Sonra tarihe göre
                 .ToList();
 
             return View(maintenances);
