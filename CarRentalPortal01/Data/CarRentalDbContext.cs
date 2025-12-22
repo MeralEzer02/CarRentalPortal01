@@ -1,17 +1,18 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using CarRentalPortal01.Models;
 
 namespace CarRentalPortal01.Data
 {
-    public class CarRentalDbContext : IdentityDbContext<AppUser, AppRole, int>
+    // IdentityDbContext YOK! Sadece DbContext var.
+    public class CarRentalDbContext : DbContext
     {
         public CarRentalDbContext(DbContextOptions<CarRentalDbContext> options)
             : base(options)
         {
         }
 
-        public DbSet<OldUser> OldUsers { get; set; }
+        // ESKİ TABLOLARIMIZI EKSİKSİZ GERİ GETİRDİK
+        public DbSet<User> Users { get; set; } // Manuel User tablosu geri geldi!
         public DbSet<Category> Categories { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<Rental> Rentals { get; set; }
@@ -23,14 +24,11 @@ namespace CarRentalPortal01.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(modelBuilder);
-
+            // Tablo isimlerini tekil yapma ayarları
             modelBuilder.Entity<Vehicle>().ToTable("Vehicle");
             modelBuilder.Entity<Rental>().ToTable("Rental");
 
-            modelBuilder.Entity<Rental>().Ignore("User");
-            modelBuilder.Entity<Rental>().Ignore("OldUser");
-
+            // Para birimi (Money) ayarları
             modelBuilder.Entity<Rental>()
                 .Property(r => r.TotalPrice)
                 .HasColumnType("money");
@@ -43,6 +41,11 @@ namespace CarRentalPortal01.Data
                 .Property(p => p.Cost)
                 .HasColumnType("decimal(18,2)");
 
+            modelBuilder.Entity<Expense>()
+                .Property(e => e.Amount)
+                .HasColumnType("decimal(18,2)");
+
+            // Çoka-Çok İlişki (Araç - Kategori)
             modelBuilder.Entity<VehicleCategory>()
                 .HasKey(vc => new { vc.VehicleId, vc.CategoryId });
 
@@ -56,9 +59,7 @@ namespace CarRentalPortal01.Data
                 .WithMany(c => c.VehicleCategories)
                 .HasForeignKey(vc => vc.CategoryId);
 
-            modelBuilder.Entity<AppUser>().Property(u => u.Salary).HasColumnType("decimal(18,2)");
-            modelBuilder.Entity<OldUser>().Property(u => u.Salary).HasColumnType("decimal(18,2)");
-            modelBuilder.Entity<Expense>().Property(e => e.Amount).HasColumnType("decimal(18,2)");
+            base.OnModelCreating(modelBuilder);
         }
     }
 }

@@ -2,7 +2,7 @@
 
 namespace CarRentalPortal01.Models
 {
-    public class OldUser
+    public class User
     {
         [Key]
         public int UserId { get; set; }

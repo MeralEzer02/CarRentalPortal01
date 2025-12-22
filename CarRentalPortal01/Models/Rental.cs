@@ -22,6 +22,6 @@ namespace CarRentalPortal01.Models
         public int UserId { get; set; }
 
         [ForeignKey("UserId")]
-        public OldUser User { get; set; }
+        public User User { get; set; }
     }
 }
