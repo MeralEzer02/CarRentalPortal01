@@ -1,4 +1,4 @@
-﻿@model CarRentalPortal01.ViewModels.RegisterViewModel
+﻿@model CarRentalPortal01.Models.User  
 
 @{
     ViewData["Title"] = "Kayıt Ol";
@@ -11,7 +11,6 @@
         <div class="row no-gutters slider-text js-fullheight align-items-end justify-content-start">
             <div class="col-md-9 ftco-animate pb-5">
                 <h1 class="mb-3 bread">Aramıza Katılın</h1>
-                <p class="breadcrumbs"><span class="mr-2"><a href="/Home/Index">Anasayfa <i class="ion-ios-arrow-forward"></i></a></span> <span>Kayıt Ol <i class="ion-ios-arrow-forward"></i></span></p>
             </div>
         </div>
     </div>
@@ -21,51 +20,33 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-md-6 block-9 mb-md-5">
-
-                <form asp-controller="Auth" asp-action="Register" method="post" class="bg-light p-5 contact-form shadow-sm rounded">
-                    <h3 class="text-center mb-4">Yeni Üyelik Oluştur</h3>
-
-                    <div class="text-danger mb-3" asp-validation-summary="ModelOnly"></div>
-
+                <form asp-action="Register" method="post" class="bg-light p-5 contact-form shadow-sm rounded">
+                    <h3 class="text-center mb-4">Yeni Üyelik</h3>
+                    
                     <div class="form-group">
                         <label>Ad Soyad</label>
-                        <input type="text" asp-for="FullName" class="form-control" placeholder="Adınız Soyadınız">
-                        <span asp-validation-for="FullName" class="text-danger small"></span>
+                        <input type="text" name="UserName" class="form-control" required placeholder="Adınız Soyadınız">
                     </div>
-
                     <div class="form-group">
-                        <label>Kullanıcı Adı</label>
-                        <input type="text" asp-for="Username" class="form-control" placeholder="Kullanıcı Adı">
-                        <span asp-validation-for="Username" class="text-danger small"></span>
+                        <label>Email</label>
+                        <input type="email" name="Email" class="form-control" required placeholder="Email Adresiniz">
                     </div>
-
                     <div class="form-group">
-                        <label>E-Posta</label>
-                        <input type="email" asp-for="Email" class="form-control" placeholder="ornek@mail.com">
-                        <span asp-validation-for="Email" class="text-danger small"></span>
+                        <label>Telefon</label>
+                        <input type="text" name="PhoneNumber" class="form-control" placeholder="Telefon Numaranız">
                     </div>
-
                     <div class="form-group">
                         <label>Şifre</label>
-                        <input type="password" asp-for="Password" class="form-control" placeholder="******">
-                        <span asp-validation-for="Password" class="text-danger small"></span>
+                        <input type="password" name="PasswordHash" class="form-control" required placeholder="******">
                     </div>
-
-                    <div class="form-group">
-                        <label>Şifre Tekrar</label>
-                        <input type="password" asp-for="ConfirmPassword" class="form-control" placeholder="******">
-                        <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
-                    </div>
-
+                    
                     <div class="form-group mt-4">
-                        <input type="submit" value="Kayıt Ol" class="btn btn-primary py-3 px-5 w-100">
+                        <button type="submit" class="btn btn-primary py-3 px-5 w-100">Kayıt Ol</button>
                     </div>
-
                     <div class="text-center mt-3">
                         <p>Zaten üye misiniz? <a href="/Auth/Login">Giriş Yapın</a></p>
                     </div>
                 </form>
-
             </div>
         </div>
     </div>

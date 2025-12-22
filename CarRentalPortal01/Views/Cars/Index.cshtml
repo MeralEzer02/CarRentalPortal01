@@ -194,8 +194,9 @@
                                             <p class="price ml-auto">@car.DailyRentalRate.ToString("C0") <span>/gün</span></p>
                                         </div>
                                         <p class="d-flex mb-0 d-block">
-                                            <a href="/Cars/CarDetail/@car.Id" class="btn btn-primary py-2 mr-1">Kirala</a>
-                                            <a href="/Cars/CarDetail/@car.Id" class="btn btn-secondary py-2 ml-1">Detaylar</a>
+                                            <a asp-controller="Cars" asp-action="Details" asp-route-id="@car.Id" class="btn btn-secondary py-2 ml-1">Detaylar</a>
+
+                                            <a asp-controller="Cars" asp-action="Rent" asp-route-id="@car.Id" class="btn btn-primary py-2 mr-1">Kirala</a>
                                         </p>
                                     </div>
                                 </div>

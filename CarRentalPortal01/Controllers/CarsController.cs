@@ -121,5 +121,84 @@ namespace CarRentalPortal01.Controllers
 
             return View(pagedCars);
         }
+        // --- DETAYLAR BUTONU İÇİN ---
+        public IActionResult Details(int id)
+        {
+            var car = _context.Vehicles.Find(id);
+            if (car == null) return NotFound();
+
+            if (!string.IsNullOrEmpty(car.VariantGroupId))
+            {
+                var variants = _context.Vehicles
+                    .Where(v => v.VariantGroupId == car.VariantGroupId && v.Id != id)
+                    .ToList();
+
+                ViewBag.Variants = variants;
+            }
+            else
+            {
+                ViewBag.Variants = new List<Vehicle>();
+            }
+
+            return View("CarDetail", car);
+        }
+
+        // --- KİRALA BUTONU İÇİN ---
+        [HttpGet]
+        public IActionResult Rent(int id)
+        {
+            // 1. Kullanıcı Giriş Yapmış mı?
+            if (!User.Identity.IsAuthenticated)
+            {
+                // Giriş yapmamışsa Login sayfasına at, dönüşte buraya gelsin
+                return RedirectToAction("Login", "Auth", new { returnUrl = $"/Cars/Rent/{id}" });
+            }
+
+            // 2. Aracı Bul
+            var car = _context.Vehicles.Find(id);
+            if (car == null) return NotFound();
+
+            // 3. Kiralama Sayfasına Git (View Modeline Aracı Gönder)
+            // Eğer Rent.cshtml diye bir sayfan yoksa, oluşturman gerekecek.
+            // Şimdilik test için Detay sayfasına yönlendirelim veya View döndürelim:
+            return View(car);
+        }
+
+        // --- KİRALAMA İŞLEMİNİ TAMAMLAMA (POST) ---
+        [HttpPost]
+        public IActionResult Rent(int vehicleId, DateTime startDate, DateTime endDate)
+        {
+            if (!User.Identity.IsAuthenticated) return RedirectToAction("Login", "Auth");
+
+            // Kullanıcının Email'ini Cookie'den al
+            var userEmail = User.Identity.Name;
+            var user = _context.Users.FirstOrDefault(u => u.Email == userEmail);
+
+            if (user != null)
+            {
+                var vehicle = _context.Vehicles.Find(vehicleId);
+
+                // Toplam Fiyat Hesapla
+                var days = (endDate - startDate).Days;
+                if (days <= 0) days = 1;
+                var totalPrice = days * vehicle.DailyRentalRate;
+
+                var rental = new Rental
+                {
+                    VehicleId = vehicleId,
+                    UserId = user.UserId,
+                    StartDate = startDate,
+                    EndDate = endDate,
+                    TotalPrice = totalPrice,
+                };
+
+                _context.Rentals.Add(rental);
+                _context.SaveChanges();
+
+                return RedirectToAction("Index", "Home"); // Başarılıysa anasayfaya
+            }
+
+            return View(); // Hata varsa sayfada kal
+        }
     }
 }

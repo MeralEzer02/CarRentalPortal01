@@ -3,9 +3,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
 using CarRentalPortal01.Data;
-using CarRentalPortal01.ViewModels; // AdminLoginViewModel bunun içindeyse
+using CarRentalPortal01.Models; // User sınıfı buradan geliyor
 using NToastNotify;
-using CarRentalPortal01.Models; // User sınıfı için
 
 namespace CarRentalPortal01.Controllers
 {
@@ -20,55 +19,114 @@ namespace CarRentalPortal01.Controllers
             _toastNotification = toastNotification;
         }
 
+        // --- GİRİŞ YAP (LOGIN) ---
+
         [HttpGet]
-        public IActionResult Login()
+        public IActionResult Login(string returnUrl = null)
+        {
+            // Zaten giriş yapmışsa Anasayfaya at
+            if (User.Identity.IsAuthenticated)
+            {
+                return RedirectToAction("Index", "Home");
+            }
+
+            ViewBag.ReturnUrl = returnUrl;
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Login(string email, string password, string returnUrl = null)
+        {
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
+            {
+                _toastNotification.AddWarningToastMessage("Lütfen email ve şifrenizi girin.");
+                return View();
+            }
+
+            // Kullanıcıyı Bul
+            var user = _context.Users.FirstOrDefault(x => x.Email == email && x.PasswordHash == password);
+
+            if (user != null)
+            {
+                // Kimlik Bilgilerini Oluştur (Cookie İçine Yazılacaklar)
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.Name, user.Email),
+                    new Claim(ClaimTypes.Role, user.Role.ToString())
+                };
+
+                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                var authProperties = new AuthenticationProperties { IsPersistent = true };
+
+                await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity), authProperties);
+
+                _toastNotification.AddSuccessToastMessage($"Hoş geldiniz, {user.UserName}");
+
+                // YÖNLENDİRME MANTIĞI
+                // 1. Admin ise Panele
+                if (user.Role == 2)
+                {
+                    return RedirectToAction("Index", "Admin");
+                }
+
+                // 2. Eğer 'Kirala' butonundan geldiyse kaldığı yere dön
+                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                {
+                    return Redirect(returnUrl);
+                }
+
+                // 3. Normal müşteri ise Anasayfaya
+                return RedirectToAction("Index", "Home");
+            }
+
+            _toastNotification.AddErrorToastMessage("Email veya şifre hatalı!");
+            return View();
+        }
+
+        // --- KAYIT OL (REGISTER) ---
+
+        [HttpGet]
+        public IActionResult Register()
         {
             return View();
         }
 
         [HttpPost]
-        public async Task<IActionResult> Login(AdminLoginViewModel model)
+        public IActionResult Register(User p)
         {
-            if (ModelState.IsValid)
+            // Email kontrolü
+            var checkUser = _context.Users.FirstOrDefault(x => x.Email == p.Email);
+            if (checkUser != null)
             {
-                // Eski usül veritabanından kullanıcı kontrolü
-                var user = _context.Users.FirstOrDefault(x => x.Email == model.Email && x.PasswordHash == model.Password);
-
-                if (user != null)
-                {
-                    var claims = new List<Claim>
-                    {
-                        new Claim(ClaimTypes.Name, user.Email),
-                        // Role enum veya int ise string'e çeviriyoruz
-                        new Claim(ClaimTypes.Role, user.Role.ToString())
-                    };
-
-                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    var authProperties = new AuthenticationProperties();
-
-                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity), authProperties);
-
-                    _toastNotification.AddSuccessToastMessage($"Hoş geldiniz, {user.Email}");
-                    return RedirectToAction("Index", "Admin");
-                }
-                else
-                {
-                    _toastNotification.AddErrorToastMessage("Email veya şifre hatalı!");
-                    ModelState.AddModelError("", "Email veya şifre hatalı!");
-                }
+                _toastNotification.AddErrorToastMessage("Bu email zaten kayıtlı!");
+                return View(p);
             }
-            else
+
+            // Boş alan kontrolü
+            if (string.IsNullOrEmpty(p.UserName) || string.IsNullOrEmpty(p.Email) || string.IsNullOrEmpty(p.PasswordHash))
             {
-                _toastNotification.AddWarningToastMessage("Lütfen alanları kontrol edin.");
+                _toastNotification.AddWarningToastMessage("Lütfen zorunlu alanları doldurun.");
+                return View(p);
             }
-            return View(model);
+
+            // Varsayılan değerler
+            p.Role = 0; // Müşteri
+            p.Salary = 0;
+            p.DriverLicenseImage = "-";
+            if (string.IsNullOrEmpty(p.PhoneNumber)) p.PhoneNumber = "-";
+
+            _context.Users.Add(p);
+            _context.SaveChanges();
+
+            _toastNotification.AddSuccessToastMessage("Kayıt başarılı! Giriş yapabilirsiniz.");
+            return RedirectToAction("Login");
         }
 
+        // --- ÇIKIŞ YAP (LOGOUT) ---
         public async Task<IActionResult> Logout()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            _toastNotification.AddInfoToastMessage("Başarıyla çıkış yapıldı.");
-            return RedirectToAction("Login");
+            return RedirectToAction("Index", "Home");
         }
     }
 }

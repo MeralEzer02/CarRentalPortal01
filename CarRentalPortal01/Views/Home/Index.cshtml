@@ -1,8 +1,25 @@
-﻿@model IEnumerable<CarRentalPortal01.Models.Vehicle>
+﻿@using CarRentalPortal01.Data
+@inject CarRentalDbContext _context
+@model IEnumerable<CarRentalPortal01.Models.Vehicle>
 
 @{
     ViewData["Title"] = "Anasayfa";
     Layout = "~/Views/Shared/_UserLayout.cshtml";
+
+    // --- SAYAÇ HESAPLAMALARI ---
+
+    // 1. Toplam Araç Sayısı
+    int totalCars = _context.Vehicles.Count();
+
+    // 2. Müşteri Sayısı (Role = 0 olanlar)
+    int totalCustomers = _context.Users.Count();
+
+    // 3. Tecrübe (Örneğin şirket 2020'de kuruldu varsayalım)
+    int experience = DateTime.Now.Year - 2020;
+    if (experience < 1) experience = 1; // En az 1 yıl görünsün
+
+    // 4. Şube (Veritabanında tablosu yok, şimdilik sabit)
+    int totalBranches = 4;
 }
 
 <div class="hero-wrap ftco-degree-bg" style="background-image: url('/frontend/images/bg_1.jpg');" data-stellar-background-ratio="0.5">
@@ -118,7 +135,7 @@
                         {
                             <div class="item">
                                 <div class="car-wrap rounded ftco-animate">
-                                    <div class="img rounded d-flex align-items-end" style="background-image: url('/@car.ImageUrl');">
+                                    <div class="img rounded d-flex align-items-end" style="background-image: url('/images/vehicles/car/');">
                                     </div>
                                     <div class="text">
                                         <h2 class="mb-0"><a href="#">@car.Brand @car.Model</a></h2>
@@ -267,42 +284,14 @@
     </div>
 </section>
 
-<section class="ftco-section">
-    <div class="container">
-        <div class="row justify-content-center mb-5">
-            <div class="col-md-7 heading-section text-center ftco-animate">
-                <span class="subheading">Blog</span>
-                <h2 class="mb-3">Son Yazılar</h2>
-            </div>
-        </div>
-        <div class="row d-flex">
-            <div class="col-md-4 d-flex ftco-animate">
-                <div class="blog-entry justify-content-end">
-                    <a href="#" class="block-20" style="background-image: url('/frontend/images/image_1.jpg');">
-                    </a>
-                    <div class="text pt-4">
-                        <div class="meta mb-3">
-                            <div><a href="#">20 Aralık 2025</a></div>
-                            <div><a href="#">Admin</a></div>
-                            <div><a href="#" class="meta-chat"><span class="icon-chat"></span> 3</a></div>
-                        </div>
-                        <h3 class="heading mt-2"><a href="#">Kışın Araç Kullanımı İpuçları</a></h3>
-                        <p><a href="#" class="btn btn-primary">Devamını Oku</a></p>
-                    </div>
-                </div>
-            </div>
-            </div>
-    </div>
-</section>
-
-<section class="ftco-counter ftco-section img bg-light" id="section-counter">
+<section class="ftco-counter ftco-section img" id="section-counter">
     <div class="overlay"></div>
     <div class="container">
         <div class="row">
             <div class="col-md-6 col-lg-3 justify-content-center counter-wrap ftco-animate">
                 <div class="block-18">
                     <div class="text text-border d-flex align-items-center">
-                        <strong class="number" data-number="5">0</strong>
+                        <strong class="number" data-number="@experience">0</strong>
                         <span>Yıllık <br>Tecrübe</span>
                     </div>
                 </div>
@@ -310,7 +299,7 @@
             <div class="col-md-6 col-lg-3 justify-content-center counter-wrap ftco-animate">
                 <div class="block-18">
                     <div class="text text-border d-flex align-items-center">
-                        <strong class="number" data-number="100">0</strong>
+                        <strong class="number" data-number="@totalCars">0</strong>
                         <span>Toplam <br>Araç</span>
                     </div>
                 </div>
@@ -318,7 +307,7 @@
             <div class="col-md-6 col-lg-3 justify-content-center counter-wrap ftco-animate">
                 <div class="block-18">
                     <div class="text text-border d-flex align-items-center">
-                        <strong class="number" data-number="2500">0</strong>
+                        <strong class="number" data-number="@totalCustomers">0</strong>
                         <span>Mutlu <br>Müşteri</span>
                     </div>
                 </div>
@@ -326,7 +315,7 @@
             <div class="col-md-6 col-lg-3 justify-content-center counter-wrap ftco-animate">
                 <div class="block-18">
                     <div class="text d-flex align-items-center">
-                        <strong class="number" data-number="10">0</strong>
+                        <strong class="number" data-number="@totalBranches">0</strong>
                         <span>Toplam <br>Şube</span>
                     </div>
                 </div>

@@ -1,0 +1,118 @@
+﻿@model CarRentalPortal01.Models.Vehicle
+
+@{
+    ViewData["Title"] = "Araç Kirala";
+    Layout = "~/Views/Shared/_UserLayout.cshtml";
+}
+
+<section class="hero-wrap hero-wrap-2 js-fullheight" style="background-image: url('/frontend/images/bg_3.jpg');" data-stellar-background-ratio="0.5">
+    <div class="overlay"></div>
+    <div class="container">
+        <div class="row no-gutters slider-text js-fullheight align-items-end justify-content-start">
+            <div class="col-md-9 ftco-animate pb-5">
+                <p class="breadcrumbs">
+                    <span class="mr-2"><a href="/Home/Index">Anasayfa <i class="ion-ios-arrow-forward"></i></a></span>
+                    <span class="mr-2"><a href="/Cars/Index">Araçlar <i class="ion-ios-arrow-forward"></i></a></span>
+                    <span>Kirala <i class="ion-ios-arrow-forward"></i></span>
+                </p>
+                <h1 class="mb-3 bread">Kiralama İşlemi</h1>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="ftco-section contact-section">
+    <div class="container">
+        <div class="row d-flex mb-5 contact-info">
+            <div class="col-md-4">
+                <div class="row mb-5">
+                    <div class="col-md-12">
+                        <div class="border w-100 p-4 rounded mb-2 d-flex">
+                            <div class="icon mr-3">
+                                <span class="icon-car"></span>
+                            </div>
+                            <p>
+                                <span>Seçilen Araç:</span> <br>
+                                <strong>@Model.Brand @Model.Model</strong>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="border w-100 p-4 rounded mb-2 d-flex">
+                            <div class="icon mr-3">
+                                <span class="icon-money"></span>
+                            </div>
+                            <p>
+                                <span>Günlük Fiyat:</span> <br>
+                                <strong class="text-success">@Model.DailyRentalRate.ToString("C0")</strong>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="car-wrap rounded ftco-animate">
+                    <div class="img rounded d-flex align-items-end" style="background-image: url('/@Model.ImageUrl'); height: 250px;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8 block-9 mb-md-5">
+                <form asp-action="Rent" method="post" class="bg-light p-5 contact-form">
+                    
+                    <input type="hidden" name="vehicleId" value="@Model.Id" />
+                    
+                    <h3 class="mb-4">Rezervasyon Bilgileri</h3>
+
+                    <div class="form-row mb-3">
+                        <div class="form-group col-md-6">
+                            <label class="font-weight-bold">Alış Yeri</label>
+                            <select name="pickUpLocation" class="form-control">
+                                <option value="Merkez Ofis">Merkez Ofis</option>
+                                <option value="Sabiha Gökçen Havalimanı">Sabiha Gökçen Havalimanı</option>
+                                <option value="İstanbul Havalimanı">İstanbul Havalimanı</option>
+                                <option value="Otogar">Otogar</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="font-weight-bold">İade Yeri</label>
+                            <select name="dropOffLocation" class="form-control">
+                                <option value="Merkez Ofis">Merkez Ofis</option>
+                                <option value="Sabiha Gökçen Havalimanı">Sabiha Gökçen Havalimanı</option>
+                                <option value="İstanbul Havalimanı">İstanbul Havalimanı</option>
+                                <option value="Otogar">Otogar</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label class="font-weight-bold">Alış Tarihi & Saati</label>
+                            <div class="d-flex">
+                                <input type="date" name="startDate" class="form-control mr-2" required>
+                                <input type="time" name="startTime" class="form-control" value="09:00" style="width: 100px;" required>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="font-weight-bold">İade Tarihi & Saati</label>
+                            <div class="d-flex">
+                                <input type="date" name="endDate" class="form-control mr-2" required>
+                                <input type="time" name="endTime" class="form-control" value="09:00" style="width: 100px;" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="alert alert-warning">
+                            <span class="icon-info-circle"></span>
+                            Fiyat hesaplaması <strong>saatlik farklar</strong> dikkate alınarak yapılacaktır.
+                        </div>
+                    </div>
+
+                    <div class="form-group text-right">
+                        <a href="/Cars/CarDetail/@Model.Id" class="btn btn-secondary py-3 px-5">İptal</a>
+                        <button type="submit" class="btn btn-primary py-3 px-5">Kiralamayı Onayla</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
