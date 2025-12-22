@@ -24,21 +24,53 @@
     <div class="container">
 
         <div class="row justify-content-center mb-5">
-            <div class="col-md-8">
-                <form asp-controller="Cars" asp-action="Index" method="get" class="search-form">
-                    <div class="input-group">
-                        <input type="text" name="search" class="form-control p-4"
-                               placeholder="Hangi aracı arıyorsunuz? (Örn: BMW, Egea...)"
-                               value="@ViewBag.Search">
-                        <div class="input-group-append">
-                            <button class="btn btn-primary px-4" type="submit">Ara</button>
-                            @if (!string.IsNullOrEmpty(ViewBag.Search))
-                            {
-                                <a href="/Cars/Index" class="btn btn-outline-danger px-3" title="Filtreyi Temizle">X</a>
-                            }
+            <div class="col-md-10">
+                <div class="card p-4 shadow-sm border-0">
+                    <form asp-controller="Cars" asp-action="Index" method="get">
+                        <div class="row">
+
+                            <div class="col-md-4 mb-3">
+                                <label class="text-muted small">Araç Arayın</label>
+                                <input type="text" name="search" class="form-control"
+                                       placeholder="Örn: BMW, Egea..."
+                                       value="@ViewBag.Search">
+                            </div>
+
+                            <div class="col-md-3 mb-3">
+                                <label class="text-muted small">Vites Tipi</label>
+                                <select name="gearType" class="form-control">
+                                    <option value="">Tümü</option>
+                                    <!option value="Manuel" @(ViewBag.GearType == "Manuel" ? "selected" : "")>Manuel</!option>
+                                    <!option value="Otomatik" @(ViewBag.GearType == "Otomatik" ? "selected" : "")>Otomatik</!option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-3 mb-3">
+                                <label class="text-muted small">Yakıt Tipi</label>
+                                <select name="fuelType" class="form-control">
+                                    <option value="">Tümü</option>
+                                    <!option value="Benzin" @(ViewBag.FuelType == "Benzin" ? "selected" : "")>Benzin</!option>
+                                    <!option value="Dizel" @(ViewBag.FuelType == "Dizel" ? "selected" : "")>Dizel</!option>
+                                    <!option value="Elektrik" @(ViewBag.FuelType == "Elektrik" ? "selected" : "")>Elektrik</!option>
+                                    <!option value="Hibrit" @(ViewBag.FuelType == "Hibrit" ? "selected" : "")>Hibrit</!option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-2 mb-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary w-100 py-2">Uygula</button>
+                            </div>
                         </div>
-                    </div>
-                </form>
+
+                        @if (!string.IsNullOrEmpty(ViewBag.Search) || !string.IsNullOrEmpty(ViewBag.GearType) || !string.IsNullOrEmpty(ViewBag.FuelType))
+                        {
+                            <div class="row mt-2">
+                                <div class="col-12 text-center">
+                                    <a href="/Cars/Index" class="text-danger small"><i class="ion-ios-close-circle"></i> Filtreleri Temizle</a>
+                                </div>
+                            </div>
+                        }
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -99,7 +131,7 @@
 
                             @if (ViewBag.CurrentPage < ViewBag.TotalPages)
                             {
-                                <li><a href="/Cars/Index?page=@(ViewBag.CurrentPage + 1)&search=@ViewBag.Search">&gt;</a></li>
+                                <li><a href="/Cars/Index?page=&search=@ViewBag.Search&gearType=@ViewBag.GearType&fuelType=@ViewBag.FuelType"></a></li>
                             }
                         </ul>
                     </div>

@@ -15,20 +15,33 @@ namespace CarRentalPortal01.Controllers
         }
 
         // ARAÇ LİSTESİ
-        public IActionResult Index(string search, int page = 1)
+        public IActionResult Index(string search, string gearType, string fuelType, int page = 1)
         {
             var carsQuery = _context.Vehicles.Where(v => v.IsAvailable).AsQueryable();
 
+            // 2. ARAMA FİLTRESİ
             if (!string.IsNullOrEmpty(search))
             {
                 carsQuery = carsQuery.Where(x => x.Brand.Contains(search) || x.Model.Contains(search));
             }
 
-            int pageSize = 6; // Her sayfada kaç araç görünsün?
-            int totalCars = carsQuery.Count(); // Toplam uygun araç sayısı
-            int totalPages = (int)Math.Ceiling((double)totalCars / pageSize); // Toplam sayfa sayısı
+            // 3. VİTES TİPİ FİLTRESİ
+            if (!string.IsNullOrEmpty(gearType))
+            {
+                carsQuery = carsQuery.Where(x => x.GearType == gearType);
+            }
 
-            // Sayfa sınırlarını kontrol et
+            // 4. YAKIT TİPİ FİLTRESİ
+            if (!string.IsNullOrEmpty(fuelType))
+            {
+                carsQuery = carsQuery.Where(x => x.FuelType == fuelType);
+            }
+
+            // 5. SAYFALAMA AYARLARI
+            int pageSize = 6;
+            int totalCars = carsQuery.Count();
+            int totalPages = (int)Math.Ceiling((double)totalCars / pageSize);
+
             if (page < 1) page = 1;
             if (page > totalPages && totalPages > 0) page = totalPages;
 
@@ -41,9 +54,13 @@ namespace CarRentalPortal01.Controllers
             ViewBag.TotalPages = totalPages;
             ViewBag.CurrentPage = page;
             ViewBag.Search = search;
+            ViewBag.GearType = gearType;
+            ViewBag.FuelType = fuelType;
 
             return View(pagedCars);
-        }        // ARAÇ DETAY SAYFASI
+        }
+
+        // ARAÇ DETAY SAYFASI
         public IActionResult CarDetail(int id)
         {
             // 1. Seçilen Aracı Bul
