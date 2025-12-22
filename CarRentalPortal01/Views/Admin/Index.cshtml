@@ -7,77 +7,77 @@
     ViewData["Title"] = "Panel Özeti";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 
-    // --- 1. GARANTİ HESAPLAMALAR (Matematiksel Doğrulama) ---
+    // --- 1. GARANTİ HESAPLAMALAR (Matematiksel Doğrulama) ---
 
-    // Toplam Araç Sayısı
-    int totalCars = _context.Vehicles.Count();
+    // Toplam Araç Sayısı
+    int totalCars = _context.Vehicles.Count();
 
-    // AKTİF KİRALAMALAR:
-    // Başlangıç tarihi geçmiş (veya bugün) VE Bitiş tarihi gelmemiş (veya bugün) olanlar.
-    // Yani şu an yolda olan araçlar.
-    int activeRentals = 0;
+    // AKTİF KİRALAMALAR:
+    // Başlangıç tarihi geçmiş (veya bugün) VE Bitiş tarihi gelmemiş (veya bugün) olanlar.
+    // Yani şu an yolda olan araçlar.
+    int activeRentals = 0;
     if (_context.Rentals.Any())
     {
         activeRentals = _context.Rentals.Count(r => r.StartDate <= DateTime.Now && r.EndDate >= DateTime.Now);
     }
 
-    // BAKIMDAKİ ARAÇLAR (Eğer bakım modülü aktifse):
-    // Bakım tablosunda olup 'IsCompleted' olmayanlar
-    int carsInMaintenance = 0;
+    // BAKIMDAKİ ARAÇLAR (Eğer bakım modülü aktifse):
+    // Bakım tablosunda olup 'IsCompleted' olmayanlar
+    int carsInMaintenance = 0;
     if (_context.VehicleMaintenances.Any())
     {
         carsInMaintenance = _context.VehicleMaintenances.Count(m => !m.IsCompleted);
     }
 
-    // GERÇEK MÜSAİT ARAÇ SAYISI:
-    // Toplam - (Kiradakiler + Bakımdakiler)
-    int availableCars = totalCars - (activeRentals + carsInMaintenance);
+    // GERÇEK MÜSAİT ARAÇ SAYISI:
+    // Toplam - (Kiradakiler + Bakımdakiler)
+    int availableCars = totalCars - (activeRentals + carsInMaintenance);
 
-    // Eksiye düşerse 0 göster (Veri hatası koruması)
-    if (availableCars < 0) availableCars = 0;
+    // Eksiye düşerse 0 göster (Veri hatası koruması)
+    if (availableCars < 0) availableCars = 0;
 
-    // Müşteriler
-    int totalUsers = _context.Users.Count();
+    // Müşteriler
+    int totalUsers = _context.Users.Count();
 
-    // Toplam Kazanç
-    decimal totalEarnings = 0;
+    // Toplam Kazanç
+    decimal totalEarnings = 0;
     if (_context.Rentals.Any())
     {
         totalEarnings = _context.Rentals.Sum(r => r.TotalPrice);
     }
 
-    // --- 2. GRAFİK 1: MARKALAR ---
-    var brandStats = _context.Vehicles
-        .GroupBy(v => v.Brand)
-        .Select(g => new { Name = g.Key, Count = g.Count() })
-        .ToList();
+    // --- 2. GRAFİK 1: MARKALAR ---
+    var brandStats = _context.Vehicles
+    .GroupBy(v => v.Brand)
+    .Select(g => new { Name = g.Key, Count = g.Count() })
+    .ToList();
     var brandNames = brandStats.Select(x => x.Name).ToList();
     var brandCounts = brandStats.Select(x => x.Count).ToList();
 
-    // --- 3. GRAFİK 2: KATEGORİLER (DÜZELTİLDİ) ---
-    // 'VehicleCategory' tablosuna bağlanıp İSİMLERİ (Name) çekiyoruz.
-    var catStats = _context.Categories
-        .Include(v => v.VehicleCategories) // İlişkili tabloyu dahil et
-        .GroupBy(v => v.Name) // İsme göre grupla
-        .Select(g => new { Name = g.Key, Count = g.Count() })
-        .ToList();
+    // --- 3. GRAFİK 2: KATEGORİLER (DÜZELTİLDİ) ---
+    // 'VehicleCategory' tablosuna bağlanıp İSİMLERİ (Name) çekiyoruz.
+    var catStats = _context.Categories
+    .Include(v => v.VehicleCategories) // İlişkili tabloyu dahil et
+        .GroupBy(v => v.Name) // İsme göre grupla
+        .Select(g => new { Name = g.Key, Count = g.Count() })
+    .ToList();
 
     var catNames = catStats.Select(x => x.Name).ToList();
     var catCounts = catStats.Select(x => x.Count).ToList();
 
-    // --- 4. PERFORMANS ---
-    string mostPopularCar = "-";
+    // --- 4. PERFORMANS ---
+    string mostPopularCar = "-";
     string topEarnerCar = "-";
 
     if (_context.Rentals.Any())
     {
         var popularId = _context.Rentals.GroupBy(r => r.VehicleId)
-            .OrderByDescending(g => g.Count()).Select(g => g.Key).FirstOrDefault();
+          .OrderByDescending(g => g.Count()).Select(g => g.Key).FirstOrDefault();
         var pCar = _context.Vehicles.Find(popularId);
         if (pCar != null) mostPopularCar = $"{pCar.Brand} {pCar.Model}";
 
         var earnerId = _context.Rentals.GroupBy(r => r.VehicleId)
-            .OrderByDescending(g => g.Sum(s => s.TotalPrice)).Select(g => g.Key).FirstOrDefault();
+          .OrderByDescending(g => g.Sum(s => s.TotalPrice)).Select(g => g.Key).FirstOrDefault();
         var eCar = _context.Vehicles.Find(earnerId);
         if (eCar != null) topEarnerCar = $"{eCar.Brand} {eCar.Model}";
     }
@@ -96,7 +96,7 @@
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Toplam Araç</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">@totalCars</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="lblTotalCars">@totalCars</div>
                     </div>
                     <div class="col-auto"><i class="fas fa-car fa-2x text-gray-300"></i></div>
                 </div>
@@ -110,7 +110,7 @@
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Müsait Araçlar</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">@availableCars</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="lblAvailableCars">@availableCars</div>
                     </div>
                     <div class="col-auto"><i class="fas fa-check-circle fa-2x text-gray-300"></i></div>
                 </div>
@@ -124,7 +124,7 @@
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Kirada Olan</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">@activeRentals</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="lblActiveRentals">@activeRentals</div>
                     </div>
                     <div class="col-auto"><i class="fas fa-road fa-2x text-gray-300"></i></div>
                 </div>
@@ -138,7 +138,7 @@
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Toplam Kazanç</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">@totalEarnings.ToString("C0")</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="lblTotalEarnings">@totalEarnings.ToString("C0")</div>
                     </div>
                     <div class="col-auto"><i class="fas fa-lira-sign fa-2x text-gray-300"></i></div>
                 </div>
@@ -173,7 +173,7 @@
                         int percentage = totalCars > 0 ? ((activeRentals + carsInMaintenance) * 100) / totalCars : 0;
                     }
                     <div class="progress-bar bg-danger" role="progressbar" style="width: @percentage%"
-                         aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100"></div>
+                                      aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100"></div>
                 </div>
                 <div class="text-xs text-muted">
                     * Kiradaki Araçlar: @activeRentals <br />
@@ -281,7 +281,7 @@
                 <div class="row align-items-center">
                     <div class="col-md-3 text-center">
                         <img class="img-fluid px-3 px-sm-4 mt-3 mb-4" style="width: 15rem;"
-                             src="~/Admin/img/undraw_posting_photo.svg" alt="...">
+                                            src="~/Admin/img/undraw_posting_photo.svg" alt="...">
                     </div>
                     <div class="col-md-9">
                         <p>Sistem aktif ve veri akışı normal. 🚀</p>
@@ -294,11 +294,30 @@
     </div>
 </div>
 
-@section Scripts {
+@section Scripts 
+{
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js"></script>
+    <script>
+        var connection = new signalR.HubConnectionBuilder().withUrl("/carhub").build();
+
+        connection.start().then(function () {
+            console.log("SignalR Bağlandı 📡");
+        }).catch(function (err) {
+            return console.error(err.toString());
+        });
+
+        connection.on("ReceiveDashboardUpdate", function (totalCars, availableCars, activeRentals, totalEarnings) {
+            document.getElementById("lblTotalCars").innerText = totalCars;
+            document.getElementById("lblAvailableCars").innerText = availableCars;
+            document.getElementById("lblActiveRentals").innerText = activeRentals;
+            document.getElementById("lblTotalEarnings").innerText = totalEarnings + " ₺";
+        });
+    </script>
     <script src="~/Admin/vendor/chart.js/Chart.min.js"></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
 
     <script>
+
         // ORTAK RENKLER
         var chartColors = ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796', '#5a5c69', '#2e59d9'];
 

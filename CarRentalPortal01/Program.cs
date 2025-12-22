@@ -1,4 +1,5 @@
 using CarRentalPortal01.Data;
+using CarRentalPortal01.Hubs;
 using CarRentalPortal01.Repositories;
 using Microsoft.EntityFrameworkCore;
 using NToastNotify;
@@ -33,6 +34,9 @@ builder.Services.AddControllersWithViews()
 
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
+// SIGNALR SERVÝSÝ
+builder.Services.AddSignalR();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -53,6 +57,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseNToastNotify();
+
+app.MapHub<CarHub>("/carhub");
 
 app.MapControllerRoute(
     name: "default",
