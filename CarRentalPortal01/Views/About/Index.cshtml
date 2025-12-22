@@ -11,7 +11,7 @@
     int totalCars = _context.Vehicles.Count();
 
     // 2. Müşteri Sayısı (Role = 0 olanlar)
-    int totalCustomers = _context.Users.Count(u => u.Role == 0);
+    int totalCustomers = _context.Users.Count();
 
     // 3. Tecrübe (Örneğin şirket 2020'de kuruldu varsayalım)
     int experience = DateTime.Now.Year - 2020;

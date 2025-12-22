@@ -36,7 +36,7 @@ namespace CarRentalPortal01.Controllers
                     var claims = new List<Claim>
                     {
                         new Claim(ClaimTypes.Name, user.Email),
-                        new Claim(ClaimTypes.Role, user.Role.ToString())
+                        // new Claim(ClaimTypes.Role, user.Role.ToString())
                     };
 
                     var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

@@ -1,15 +1,17 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using CarRentalPortal01.Models;
 
 namespace CarRentalPortal01.Data
 {
-    public class CarRentalDbContext : DbContext
+    public class CarRentalDbContext : IdentityDbContext<AppUser, AppRole, int>
     {
         public CarRentalDbContext(DbContextOptions<CarRentalDbContext> options)
             : base(options)
         {
         }
-        public DbSet<User> Users { get; set; }
+
+        public DbSet<OldUser> OldUsers { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<Rental> Rentals { get; set; }
@@ -21,8 +23,13 @@ namespace CarRentalPortal01.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder);
+
             modelBuilder.Entity<Vehicle>().ToTable("Vehicle");
             modelBuilder.Entity<Rental>().ToTable("Rental");
+
+            modelBuilder.Entity<Rental>().Ignore("User");
+            modelBuilder.Entity<Rental>().Ignore("OldUser");
 
             modelBuilder.Entity<Rental>()
                 .Property(r => r.TotalPrice)
@@ -49,7 +56,9 @@ namespace CarRentalPortal01.Data
                 .WithMany(c => c.VehicleCategories)
                 .HasForeignKey(vc => vc.CategoryId);
 
-            base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<AppUser>().Property(u => u.Salary).HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<OldUser>().Property(u => u.Salary).HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<Expense>().Property(e => e.Amount).HasColumnType("decimal(18,2)");
         }
     }
 }

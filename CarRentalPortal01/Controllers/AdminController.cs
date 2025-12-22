@@ -17,7 +17,7 @@ namespace CarRentalPortal01.Controllers
     {
         private readonly IGenericRepository<Vehicle> _vehicleRepository;
         private readonly IGenericRepository<Rental> _rentalRepository;
-        private readonly IGenericRepository<User> _userRepository;
+        private readonly IGenericRepository<OldUser> _userRepository;
         private readonly IGenericRepository<Category> _categoryRepository;
         private readonly IToastNotification _toastNotification;
         private readonly IWebHostEnvironment _webHostEnvironment;
@@ -25,7 +25,7 @@ namespace CarRentalPortal01.Controllers
 
         public AdminController(IGenericRepository<Vehicle> vehicleRepository,
                                IGenericRepository<Rental> rentalRepository,
-                               IGenericRepository<User> userRepository,
+                               IGenericRepository<OldUser> userRepository,
                                IGenericRepository<Category> categoryRepository,
                                IToastNotification toastNotification,
                                Data.CarRentalDbContext context,
@@ -954,7 +954,7 @@ namespace CarRentalPortal01.Controllers
 
             if (id == null || id == 0)
             {
-                vm.User = new User();
+                vm.User = new OldUser();
             }
             else
             {
@@ -1242,6 +1242,7 @@ namespace CarRentalPortal01.Controllers
             }
 
             // 3. Personel Maaşları (Personel Bilgisi)
+            /*
             var staffList = _context.Users.Where(u => u.Role == 1 && u.Salary > 0).ToList();
             foreach (var staff in staffList)
             {
@@ -1255,6 +1256,7 @@ namespace CarRentalPortal01.Controllers
                     Details = $"Personel: {staff.UserName} | Tel: {staff.PhoneNumber} | Email: {staff.Email}"
                 });
             }
+            */
 
             // 4. Kiralamalar (Müşteri Bilgisi)
             var rentals = _context.Rentals.Include(r => r.Vehicle).Include(r => r.User).ToList();

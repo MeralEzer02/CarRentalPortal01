@@ -37,7 +37,7 @@
     if (availableCars < 0) availableCars = 0;
 
     // Müşteriler
-    int totalUsers = _context.Users.Count(u => u.Role == 0);
+    int totalUsers = _context.Users.Count();
 
     // Toplam Kazanç
     decimal totalEarnings = 0;

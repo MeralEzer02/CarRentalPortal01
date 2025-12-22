@@ -1,7 +1,7 @@
 ﻿@model IEnumerable<CarRentalPortal01.Models.Vehicle>
 
 @{
-    ViewData["Title"] = "Araç Filomuz";
+    ViewData["Title"] = "Araçları Filtrele";
     Layout = "~/Views/Shared/_UserLayout.cshtml";
 }
 
@@ -14,7 +14,7 @@
                     <span class="mr-2"><a href="/Home/Index">Anasayfa <i class="ion-ios-arrow-forward"></i></a></span>
                     <span>Araçlar <i class="ion-ios-arrow-forward"></i></span>
                 </p>
-                <h1 class="mb-3 bread">Araç Filomuz</h1>
+                <h1 class="mb-3 bread">Tüm Araçlar</h1>
             </div>
         </div>
     </div>
@@ -22,122 +22,231 @@
 
 <section class="ftco-section bg-light">
     <div class="container">
+        <div class="row">
 
-        <div class="row justify-content-center mb-5">
-            <div class="col-md-10">
-                <div class="card p-4 shadow-sm border-0">
+            <div class="col-md-3">
+                <div class="sidebar-box bg-white p-4 ftco-animate shadow-sm rounded">
+                    <h3 class="heading mb-4">Filtrele</h3>
+
                     <form asp-controller="Cars" asp-action="Index" method="get">
-                        <div class="row">
 
-                            <div class="col-md-4 mb-3">
-                                <label class="text-muted small">Araç Arayın</label>
-                                <input type="text" name="search" class="form-control"
-                                       placeholder="Örn: BMW, Egea..."
-                                       value="@ViewBag.Search">
-                            </div>
+                        <div class="form-group">
+                            <label class="font-weight-bold">Kelime Ara</label>
+                            <input type="text" name="search" class="form-control" placeholder="Örn: BMW" value="@ViewBag.CurrentSearch">
+                        </div>
 
-                            <div class="col-md-3 mb-3">
-                                <label class="text-muted small">Vites Tipi</label>
-                                <select name="gearType" class="form-control">
-                                    <option value="">Tümü</option>
-                                    <!option value="Manuel" @(ViewBag.GearType == "Manuel" ? "selected" : "")>Manuel</!option>
-                                    <!option value="Otomatik" @(ViewBag.GearType == "Otomatik" ? "selected" : "")>Otomatik</!option>
-                                </select>
-                            </div>
+                        <div class="form-group">
+                            <label class="font-weight-bold">Kategori</label>
+                            <select name="categoryId" class="form-control">
+                                <option value="">Tümü</option>
+                                @foreach (var cat in (List<CarRentalPortal01.Models.Category>)ViewBag.Categories)
+                                {
+                                    if (ViewBag.CurrentCategory == cat.Id)
+                                    {
+                                        <option value="@cat.Id" selected>@cat.Name</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@cat.Id">@cat.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
 
-                            <div class="col-md-3 mb-3">
-                                <label class="text-muted small">Yakıt Tipi</label>
-                                <select name="fuelType" class="form-control">
-                                    <option value="">Tümü</option>
-                                    <!option value="Benzin" @(ViewBag.FuelType == "Benzin" ? "selected" : "")>Benzin</!option>
-                                    <!option value="Dizel" @(ViewBag.FuelType == "Dizel" ? "selected" : "")>Dizel</!option>
-                                    <!option value="Elektrik" @(ViewBag.FuelType == "Elektrik" ? "selected" : "")>Elektrik</!option>
-                                    <!option value="Hibrit" @(ViewBag.FuelType == "Hibrit" ? "selected" : "")>Hibrit</!option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-2 mb-3 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary w-100 py-2">Uygula</button>
+                        <div class="form-group">
+                            <label class="font-weight-bold">Günlük Fiyat (TL)</label>
+                            <div class="d-flex">
+                                <input type="number" name="minPrice" class="form-control mr-1" placeholder="Min" value="@ViewBag.MinPrice">
+                                <input type="number" name="maxPrice" class="form-control ml-1" placeholder="Max" value="@ViewBag.MaxPrice">
                             </div>
                         </div>
 
-                        @if (!string.IsNullOrEmpty(ViewBag.Search) || !string.IsNullOrEmpty(ViewBag.GearType) || !string.IsNullOrEmpty(ViewBag.FuelType))
-                        {
-                            <div class="row mt-2">
-                                <div class="col-12 text-center">
-                                    <a href="/Cars/Index" class="text-danger small"><i class="ion-ios-close-circle"></i> Filtreleri Temizle</a>
-                                </div>
+                        <div class="form-group">
+                            <label class="font-weight-bold">Marka</label>
+                            <select name="brand" class="form-control">
+                                <option value="">Tüm Markalar</option>
+                                @foreach (var b in (List<string>)ViewBag.Brands)
+                                {
+                                    if (ViewBag.CurrentBrand == b)
+                                    {
+                                        <option value="@b" selected>@b</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@b">@b</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold">Model Yılı</label>
+                            <div class="d-flex">
+                                <input type="number" name="minYear" class="form-control mr-1" placeholder="Min" value="@ViewBag.MinYear">
+                                <input type="number" name="maxYear" class="form-control ml-1" placeholder="Max" value="@ViewBag.MaxYear">
                             </div>
-                        }
+                        </div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold">Vites</label>
+                            <select name="gearType" class="form-control">
+                                <option value="">Farketmez</option>
+                                @if (ViewBag.CurrentGear == "Manuel")
+                                {
+                                    <option value="Manuel" selected>Manuel</option>
+                                }
+                                else
+                                {
+                                    <option value="Manuel">Manuel</option>
+                                }
+                                @if (ViewBag.CurrentGear == "Otomatik")
+                                {
+                                    <option value="Otomatik" selected>Otomatik</option>
+                                }
+                                else
+                                {
+                                    <option value="Otomatik">Otomatik</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold">Yakıt</label>
+                            <select name="fuelType" class="form-control">
+                                <option value="">Farketmez</option>
+                                @if (ViewBag.CurrentFuel == "Benzin")
+                                {
+                                    <option value="Benzin" selected>Benzin</option>
+                                }
+                                else
+                                {
+                                    <option value="Benzin">Benzin</option>
+                                }
+                                @if (ViewBag.CurrentFuel == "Dizel")
+                                {
+                                    <option value="Dizel" selected>Dizel</option>
+                                }
+                                else
+                                {
+                                    <option value="Dizel">Dizel</option>
+                                }
+                                @if (ViewBag.CurrentFuel == "Elektrik")
+                                {
+                                    <option value="Elektrik" selected>Elektrik</option>
+                                }
+                                else
+                                {
+                                    <option value="Elektrik">Elektrik</option>
+                                }
+                                @if (ViewBag.CurrentFuel == "Hibrit")
+                                {
+                                    <option value="Hibrit" selected>Hibrit</option>
+                                }
+                                else
+                                {
+                                    <option value="Hibrit">Hibrit</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold">Renk</label>
+                            <select name="color" class="form-control">
+                                <option value="">Tümü</option>
+                                @foreach (var c in (List<string>)ViewBag.Colors)
+                                {
+                                    if (ViewBag.CurrentColor == c)
+                                    {
+                                        <option value="@c" selected>@c</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@c">@c</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-primary btn-block py-3">Sonuçları Göster</button>
+                            <a href="/Cars/Index" class="btn btn-outline-secondary btn-block btn-sm mt-2">Temizle</a>
+                        </div>
+
                     </form>
                 </div>
             </div>
-        </div>
 
-        <div class="row">
-            @if (Model != null && Model.Any())
-            {
-                @foreach (var car in Model)
-                {
-                    <div class="col-md-4">
-                        <div class="car-wrap rounded ftco-animate">
-                            <div class="img rounded d-flex align-items-end"
-                                 style="background-image: url('/@car.ImageUrl');">
-                            </div>
-                            <div class="text">
-                                <h2 class="mb-0"><a href="/Cars/CarDetail/@car.Id">@car.Brand @car.Model</a></h2>
-                                <div class="d-flex mb-3">
-                                    <span class="cat">@car.GearType / @car.FuelType</span>
-                                    <p class="price ml-auto">@car.DailyRentalRate.ToString("C0") <span>/gün</span></p>
+            <div class="col-md-9">
+                <div class="row">
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var car in Model)
+                        {
+                            <div class="col-md-4">
+                                <div class="car-wrap rounded ftco-animate">
+                                    <div class="img rounded d-flex align-items-end"
+                                         style="background-image: url('/@car.ImageUrl');">
+                                    </div>
+                                    <div class="text">
+                                        <h2 class="mb-0"><a href="/Cars/CarDetail/@car.Id">@car.Brand @car.Model</a></h2>
+                                        <div class="d-flex mb-3">
+                                            <span class="cat">@car.Year / @car.GearType</span>
+                                            <p class="price ml-auto">@car.DailyRentalRate.ToString("C0") <span>/gün</span></p>
+                                        </div>
+                                        <p class="d-flex mb-0 d-block">
+                                            <a href="/Cars/CarDetail/@car.Id" class="btn btn-primary py-2 mr-1">Kirala</a>
+                                            <a href="/Cars/CarDetail/@car.Id" class="btn btn-secondary py-2 ml-1">Detaylar</a>
+                                        </p>
+                                    </div>
                                 </div>
-                                <p class="d-flex mb-0 d-block">
-                                    <a href="/Cars/CarDetail/@car.Id" class="btn btn-primary py-2 mr-1">Kirala</a>
-                                    <a href="/Cars/CarDetail/@car.Id" class="btn btn-secondary py-2 ml-1">Detaylar</a>
-                                </p>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="col-12 text-center py-5">
+                            <div class="alert alert-warning">
+                                <h4>Aradığınız kriterlere uygun araç bulunamadı.</h4>
+                                <p>Lütfen filtreleri değiştirerek tekrar deneyin.</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                @if (ViewBag.TotalPages > 1)
+                {
+                    <div class="row mt-5">
+                        <div class="col text-center">
+                            <div class="block-27">
+                                <ul>
+                                    @{
+                                        // Uzun link yapısını kısaltmak için query string'i değişkene alalım
+                                        string filterParams = $"search={ViewBag.CurrentSearch}&categoryId={ViewBag.CurrentCategory}&brand={ViewBag.CurrentBrand}&minPrice={ViewBag.MinPrice}&maxPrice={ViewBag.MaxPrice}&minYear={ViewBag.MinYear}&maxYear={ViewBag.MaxYear}&gearType={ViewBag.CurrentGear}&fuelType={ViewBag.CurrentFuel}&color={ViewBag.CurrentColor}";
+                                    }
+
+                                    @if (ViewBag.CurrentPage > 1)
+                                    {
+                                        <li><a href="/Cars/Index?page=@(ViewBag.CurrentPage - 1)&@filterParams">&lt;</a></li>
+                                    }
+
+                                    @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                                    {
+                                        <li class="@(i == ViewBag.CurrentPage ? "active" : "")">
+                                            <a href="/Cars/Index?page=@i&@filterParams">@i</a>
+                                        </li>
+                                    }
+
+                                    @if (ViewBag.CurrentPage < ViewBag.TotalPages)
+                                    {
+                                        <li><a href="/Cars/Index?page=@(ViewBag.CurrentPage + 1)&@filterParams">&gt;</a></li>
+                                    }
+                                </ul>
                             </div>
                         </div>
                     </div>
                 }
-            }
-            else
-            {
-                <div class="col-12 text-center py-5">
-                    <div class="alert alert-warning">
-                        <h4>Aradığınız kriterlere uygun araç bulunamadı.</h4>
-                        <p>Lütfen farklı bir arama yapmayı deneyin.</p>
-                        <a href="/Cars/Index" class="btn btn-primary mt-2">Tüm Araçları Göster</a>
-                    </div>
-                </div>
-            }
-        </div>
-
-        @if (ViewBag.TotalPages > 1)
-        {
-            <div class="row mt-5">
-                <div class="col text-center">
-                    <div class="block-27">
-                        <ul>
-                            @if (ViewBag.CurrentPage > 1)
-                            {
-                                <li><a href="/Cars/Index?page=@(ViewBag.CurrentPage - 1)&search=@ViewBag.Search">&lt;</a></li>
-                            }
-
-                            @for (int i = 1; i <= ViewBag.TotalPages; i++)
-                            {
-                                <li class="@(i == ViewBag.CurrentPage ? "active" : "")">
-                                    <a href="/Cars/Index?page=@i&search=@ViewBag.Search">@i</a>
-                                </li>
-                            }
-
-                            @if (ViewBag.CurrentPage < ViewBag.TotalPages)
-                            {
-                                <li><a href="/Cars/Index?page=&search=@ViewBag.Search&gearType=@ViewBag.GearType&fuelType=@ViewBag.FuelType"></a></li>
-                            }
-                        </ul>
-                    </div>
-                </div>
             </div>
-        }
 
+        </div>
     </div>
 </section>

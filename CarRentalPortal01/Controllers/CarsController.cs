@@ -1,6 +1,7 @@
-﻿using CarRentalPortal01.Data;
-using CarRentalPortal01.Models;
+﻿using CarRentalPortal01.Models;
+using CarRentalPortal01.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Linq;
 
 namespace CarRentalPortal01.Controllers
@@ -14,38 +15,102 @@ namespace CarRentalPortal01.Controllers
             _context = context;
         }
 
-        // ARAÇ LİSTESİ
-        public IActionResult Index(string search, string gearType, string fuelType, int page = 1)
+        // FİLTRELEME PARAMETRELERİ
+        public IActionResult Index(
+            string search,
+            int? categoryId,
+            string brand,
+            string color,
+            string fuelType,
+            string gearType,
+            int? minYear,
+            int? maxYear,
+            decimal? minPrice,
+            decimal? maxPrice,
+            int page = 1)
         {
-            var carsQuery = _context.Vehicles.Where(v => v.IsAvailable).AsQueryable();
+            // 1. TEMEL SORGUNUN BAŞLANGICI
+            var query = _context.Vehicles
+                .Include(v => v.VehicleCategories)
+                .ThenInclude(vc => vc.Category)
+                .Where(v => v.IsAvailable)
+                .AsQueryable();
 
-            // 2. ARAMA FİLTRESİ
+            // 2. FİLTRELERİ ADIM ADIM UYGULA
+
+            // Arama (Genel)
             if (!string.IsNullOrEmpty(search))
             {
-                carsQuery = carsQuery.Where(x => x.Brand.Contains(search) || x.Model.Contains(search));
+                query = query.Where(x => x.Brand.Contains(search) || x.Model.Contains(search));
             }
 
-            // 3. VİTES TİPİ FİLTRESİ
-            if (!string.IsNullOrEmpty(gearType))
+            // Kategori (Araba / Motosiklet vb.)
+            if (categoryId.HasValue)
             {
-                carsQuery = carsQuery.Where(x => x.GearType == gearType);
+                query = query.Where(x => x.VehicleCategories.Any(vc => vc.CategoryId == categoryId));
             }
 
-            // 4. YAKIT TİPİ FİLTRESİ
+            // Marka
+            if (!string.IsNullOrEmpty(brand))
+            {
+                query = query.Where(x => x.Brand == brand);
+            }
+
+            // Renk
+            if (!string.IsNullOrEmpty(color))
+            {
+                query = query.Where(x => x.Color == color);
+            }
+
+            // Yakıt
             if (!string.IsNullOrEmpty(fuelType))
             {
-                carsQuery = carsQuery.Where(x => x.FuelType == fuelType);
+                query = query.Where(x => x.FuelType == fuelType);
             }
 
-            // 5. SAYFALAMA AYARLARI
-            int pageSize = 6;
-            int totalCars = carsQuery.Count();
+            // Vites
+            if (!string.IsNullOrEmpty(gearType))
+            {
+                query = query.Where(x => x.GearType == gearType);
+            }
+
+            // Yıl Aralığı
+            if (minYear.HasValue) query = query.Where(x => x.Year >= minYear);
+            if (maxYear.HasValue) query = query.Where(x => x.Year <= maxYear);
+
+            // Fiyat Aralığı
+            if (minPrice.HasValue) query = query.Where(x => x.DailyRentalRate >= minPrice);
+            if (maxPrice.HasValue) query = query.Where(x => x.DailyRentalRate <= maxPrice);
+
+
+            // 3. SİDEBAR (FİLTRE KUTULARI) İÇİN VERİLERİ HAZIRLA
+            // Veritabanındaki mevcut seçenekleri çekiyoruz ki boş seçenek göstermeyelim.
+            ViewBag.Categories = _context.Categories.ToList();
+            ViewBag.Brands = _context.Vehicles.Where(x => x.IsAvailable).Select(x => x.Brand).Distinct().ToList();
+            ViewBag.Colors = _context.Vehicles.Where(x => x.IsAvailable && x.Color != null).Select(x => x.Color).Distinct().ToList();
+
+            // Seçili değerleri View'a geri gönder (Form sıfırlanmasın diye)
+            ViewBag.CurrentSearch = search;
+            ViewBag.CurrentCategory = categoryId;
+            ViewBag.CurrentBrand = brand;
+            ViewBag.CurrentColor = color;
+            ViewBag.CurrentFuel = fuelType;
+            ViewBag.CurrentGear = gearType;
+            ViewBag.MinYear = minYear;
+            ViewBag.MaxYear = maxYear;
+            ViewBag.MinPrice = minPrice;
+            ViewBag.MaxPrice = maxPrice;
+
+
+            // 4. SAYFALAMA (PAGINATION)
+            int pageSize = 9; // Grid yapısında 9 tane iyidir
+            int totalCars = query.Count();
             int totalPages = (int)Math.Ceiling((double)totalCars / pageSize);
 
             if (page < 1) page = 1;
             if (page > totalPages && totalPages > 0) page = totalPages;
 
-            var pagedCars = carsQuery
+            var pagedCars = query
                 .OrderByDescending(v => v.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -53,33 +118,8 @@ namespace CarRentalPortal01.Controllers
 
             ViewBag.TotalPages = totalPages;
             ViewBag.CurrentPage = page;
-            ViewBag.Search = search;
-            ViewBag.GearType = gearType;
-            ViewBag.FuelType = fuelType;
 
             return View(pagedCars);
-        }
-
-        // ARAÇ DETAY SAYFASI
-        public IActionResult CarDetail(int id)
-        {
-            // 1. Seçilen Aracı Bul
-            var car = _context.Vehicles.FirstOrDefault(x => x.Id == id);
-
-            if (car == null) return NotFound();
-
-            var variants = new List<Vehicle>();
-
-            if (!string.IsNullOrEmpty(car.VariantGroupId))
-            {
-                variants = _context.Vehicles
-                    .Where(v => v.VariantGroupId == car.VariantGroupId && v.Id != id && v.IsAvailable)
-                    .ToList();
-            }
-
-            ViewBag.Variants = variants;
-
-            return View(car);
         }
     }
 }

@@ -5,7 +5,7 @@ namespace CarRentalPortal01.ViewModels
 {
     public class UserUpsertViewModel
     {
-        public User User { get; set; }
+        public OldUser User { get; set; }
         public IFormFile? File { get; set; }
     }
 }
