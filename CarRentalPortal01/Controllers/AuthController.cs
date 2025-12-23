@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
 using CarRentalPortal01.Data;
-using CarRentalPortal01.Models; // User sınıfı buradan geliyor
+using CarRentalPortal01.Models;
 using NToastNotify;
 
 namespace CarRentalPortal01.Controllers
@@ -24,7 +24,6 @@ namespace CarRentalPortal01.Controllers
         [HttpGet]
         public IActionResult Login(string returnUrl = null)
         {
-            // Zaten giriş yapmışsa Anasayfaya at
             if (User.Identity.IsAuthenticated)
             {
                 return RedirectToAction("Index", "Home");
@@ -43,44 +42,38 @@ namespace CarRentalPortal01.Controllers
                 return View();
             }
 
-            // Kullanıcıyı Bul
-            var user = _context.Users.FirstOrDefault(x => x.Email == email && x.PasswordHash == password);
+            var userToCheck = _context.Users.FirstOrDefault(x => x.Email == email);
 
-            if (user != null)
+            if (userToCheck == null)
             {
-                // Kimlik Bilgilerini Oluştur (Cookie İçine Yazılacaklar)
-                var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.Name, user.Email),
-                    new Claim(ClaimTypes.Role, user.Role.ToString())
-                };
-
-                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                var authProperties = new AuthenticationProperties { IsPersistent = true };
-
-                await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity), authProperties);
-
-                _toastNotification.AddSuccessToastMessage($"Hoş geldiniz, {user.UserName}");
-
-                // YÖNLENDİRME MANTIĞI
-                // 1. Admin ise Panele
-                if (user.Role == 2)
-                {
-                    return RedirectToAction("Index", "Admin");
-                }
-
-                // 2. Eğer 'Kirala' butonundan geldiyse kaldığı yere dön
-                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                {
-                    return Redirect(returnUrl);
-                }
-
-                // 3. Normal müşteri ise Anasayfaya
-                return RedirectToAction("Index", "Home");
+                _toastNotification.AddInfoToastMessage("Böyle bir üyelik bulunamadı. Sizi kayıt sayfasına yönlendiriyoruz.");
+                return RedirectToAction("Register");
             }
 
-            _toastNotification.AddErrorToastMessage("Email veya şifre hatalı!");
-            return View();
+            if (userToCheck.PasswordHash != password)
+            {
+                _toastNotification.AddErrorToastMessage("Girdiğiniz şifre hatalı!");
+                return View();
+            }
+
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, userToCheck.Email),
+                new Claim(ClaimTypes.Role, userToCheck.Role.ToString())
+            };
+
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var authProperties = new AuthenticationProperties { IsPersistent = true };
+
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity), authProperties);
+
+            _toastNotification.AddSuccessToastMessage($"Hoş geldiniz, {userToCheck.UserName}");
+
+            if (userToCheck.Role == 2) return RedirectToAction("Index", "Admin");
+
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)) return Redirect(returnUrl);
+
+            return RedirectToAction("Index", "Home");
         }
 
         // --- KAYIT OL (REGISTER) ---
@@ -92,33 +85,36 @@ namespace CarRentalPortal01.Controllers
         }
 
         [HttpPost]
-        public IActionResult Register(User p)
+        public IActionResult Register(string UserName, string Email, string PasswordHash, string PhoneNumber)
         {
-            // Email kontrolü
-            var checkUser = _context.Users.FirstOrDefault(x => x.Email == p.Email);
+            if (string.IsNullOrEmpty(UserName) || string.IsNullOrEmpty(Email) || string.IsNullOrEmpty(PasswordHash))
+            {
+                _toastNotification.AddWarningToastMessage("Lütfen Ad Soyad, Email ve Şifre giriniz.");
+                return View();
+            }
+
+            var checkUser = _context.Users.FirstOrDefault(x => x.Email == Email);
             if (checkUser != null)
             {
                 _toastNotification.AddErrorToastMessage("Bu email zaten kayıtlı!");
-                return View(p);
+                return View();
             }
 
-            // Boş alan kontrolü
-            if (string.IsNullOrEmpty(p.UserName) || string.IsNullOrEmpty(p.Email) || string.IsNullOrEmpty(p.PasswordHash))
-            {
-                _toastNotification.AddWarningToastMessage("Lütfen zorunlu alanları doldurun.");
-                return View(p);
-            }
+            User newUser = new User();
+            newUser.UserName = UserName;
+            newUser.Email = Email;
+            newUser.PasswordHash = PasswordHash;
+            newUser.PhoneNumber = string.IsNullOrEmpty(PhoneNumber) ? "-" : PhoneNumber;
 
-            // Varsayılan değerler
-            p.Role = 0; // Müşteri
-            p.Salary = 0;
-            p.DriverLicenseImage = "-";
-            if (string.IsNullOrEmpty(p.PhoneNumber)) p.PhoneNumber = "-";
+            newUser.Role = 0;
+            newUser.Salary = 0;
+            newUser.DriverLicenseImage = "-";
 
-            _context.Users.Add(p);
+            _context.Users.Add(newUser);
             _context.SaveChanges();
 
-            _toastNotification.AddSuccessToastMessage("Kayıt başarılı! Giriş yapabilirsiniz.");
+            _toastNotification.AddSuccessToastMessage("Kayıt Başarılı! Giriş yapabilirsiniz.");
+
             return RedirectToAction("Login");
         }
 

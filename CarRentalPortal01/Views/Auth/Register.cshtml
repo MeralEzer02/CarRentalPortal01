@@ -5,7 +5,7 @@
     Layout = "~/Views/Shared/_UserLayout.cshtml";
 }
 
-<section class="hero-wrap hero-wrap-2 js-fullheight" style="background-image: url('/frontend/images/bg_3.jpg');" data-stellar-background-ratio="0.5">
+<section class="hero-wrap hero-wrap-2 js-fullheight" style="background-image: url('/Frontend/images/bg_3.jpg');" data-stellar-background-ratio="0.5">
     <div class="overlay"></div>
     <div class="container">
         <div class="row no-gutters slider-text js-fullheight align-items-end justify-content-start">
@@ -22,24 +22,27 @@
             <div class="col-md-6 block-9 mb-md-5">
                 <form asp-action="Register" method="post" class="bg-light p-5 contact-form shadow-sm rounded">
                     <h3 class="text-center mb-4">Yeni Üyelik</h3>
-                    
+
                     <div class="form-group">
                         <label>Ad Soyad</label>
                         <input type="text" name="UserName" class="form-control" required placeholder="Adınız Soyadınız">
                     </div>
+
                     <div class="form-group">
                         <label>Email</label>
                         <input type="email" name="Email" class="form-control" required placeholder="Email Adresiniz">
                     </div>
+
                     <div class="form-group">
                         <label>Telefon</label>
                         <input type="text" name="PhoneNumber" class="form-control" placeholder="Telefon Numaranız">
                     </div>
+
                     <div class="form-group">
                         <label>Şifre</label>
                         <input type="password" name="PasswordHash" class="form-control" required placeholder="******">
                     </div>
-                    
+
                     <div class="form-group mt-4">
                         <button type="submit" class="btn btn-primary py-3 px-5 w-100">Kayıt Ol</button>
                     </div>

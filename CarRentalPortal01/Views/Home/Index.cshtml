@@ -6,23 +6,21 @@
     ViewData["Title"] = "Anasayfa";
     Layout = "~/Views/Shared/_UserLayout.cshtml";
 
-    // --- SAYAÇ HESAPLAMALARI ---
-
-    // 1. Toplam Araç Sayısı
+    // --- İSTATİSTİKLER ---
     int totalCars = _context.Vehicles.Count();
-
-    // 2. Müşteri Sayısı (Role = 0 olanlar)
-    int totalCustomers = _context.Users.Count();
-
-    // 3. Tecrübe (Örneğin şirket 2020'de kuruldu varsayalım)
+    int totalCustomers = _context.Users.Count(u => u.Role == 0);
     int experience = DateTime.Now.Year - 2020;
-    if (experience < 1) experience = 1; // En az 1 yıl görünsün
-
-    // 4. Şube (Veritabanında tablosu yok, şimdilik sabit)
+    if (experience < 1) experience = 1;
     int totalBranches = 4;
+
+    var featuredCars = Model;
+    if (featuredCars == null || !featuredCars.Any())
+    {
+        featuredCars = _context.Vehicles.OrderByDescending(x => x.Id).Take(6).ToList();
+    }
 }
 
-<div class="hero-wrap ftco-degree-bg" style="background-image: url('/frontend/images/bg_1.jpg');" data-stellar-background-ratio="0.5">
+<div class="hero-wrap ftco-degree-bg" style="background-image: url('/Frontend/images/bg_1.jpg');" data-stellar-background-ratio="0.5">
     <div class="overlay"></div>
     <div class="container">
         <div class="row no-gutters slider-text justify-content-start align-items-center justify-content-center">
@@ -30,7 +28,8 @@
                 <div class="text w-100 text-center mb-md-5 pb-md-5">
                     <h1 class="mb-4">Hızlı &amp; Kolay Araç Kiralama</h1>
                     <p style="font-size: 18px;">Hayalinizdeki yolculuğa çıkmak için en uygun aracı bulun. Konfor ve güven bir arada.</p>
-                    <a href="https://vimeo.com/45830194" class="icon-wrap popup-vimeo d-flex align-items-center mt-4 justify-content-center">
+
+                    <a href="/About/Index" class="icon-wrap d-flex align-items-center mt-4 justify-content-center">
                         <div class="icon d-flex align-items-center justify-content-center">
                             <span class="ion-ios-play"></span>
                         </div>
@@ -38,6 +37,7 @@
                             <span>Nasıl Kiralarım?</span>
                         </div>
                     </a>
+
                 </div>
             </div>
         </div>
@@ -49,45 +49,43 @@
         <div class="row no-gutters">
             <div class="col-md-12 featured-top">
                 <div class="row no-gutters">
+
                     <div class="col-md-4 d-flex align-items-center">
-                        <form action="#" class="request-form ftco-animate bg-primary">
-                            <h2>Seyahatini Planla</h2>
+                        <form action="/Cars/Index" method="get" class="request-form ftco-animate bg-primary">
+                            <h2>Hemen Kirala</h2>
+
                             <div class="form-group">
-                                <label for="" class="label">Alış Yeri</label>
-                                <input type="text" class="form-control" placeholder="Şehir, Havalimanı vb.">
+                                <label class="label">Alış Yeri</label>
+                                <input type="text" class="form-control" placeholder="Şehir veya Havalimanı">
                             </div>
-                            <div class="form-group">
-                                <label for="" class="label">Teslim Yeri</label>
-                                <input type="text" class="form-control" placeholder="Şehir, Havalimanı vb.">
-                            </div>
+
                             <div class="d-flex">
                                 <div class="form-group mr-2">
-                                    <label for="" class="label">Alış Tarihi</label>
-                                    <input type="text" class="form-control" id="book_pick_date" placeholder="Tarih">
+                                    <label class="label">Alış Tarihi</label>
+                                    <input type="date" class="form-control" name="startDate">
                                 </div>
                                 <div class="form-group ml-2">
-                                    <label for="" class="label">Teslim Tarihi</label>
-                                    <input type="text" class="form-control" id="book_off_date" placeholder="Tarih">
+                                    <label class="label">İade Tarihi</label>
+                                    <input type="date" class="form-control" name="endDate">
                                 </div>
                             </div>
+
                             <div class="form-group">
-                                <label for="" class="label">Alış Saati</label>
-                                <input type="text" class="form-control" id="time_pick" placeholder="Saat">
-                            </div>
-                            <div class="form-group">
-                                <input type="submit" value="Uygun Araçları Bul" class="btn btn-secondary py-3 px-4">
+                                <input type="submit" value="Uygun Araçları Listele" class="btn btn-secondary py-3 px-4">
                             </div>
                         </form>
                     </div>
+
                     <div class="col-md-8 d-flex align-items-center">
                         <div class="services-wrap rounded-right w-100">
-                            <h3 class="heading-section mb-4">Aracınızı Kiralamanın En İyi Yolu</h3>
+                            <h3 class="heading-section mb-4">Aracınızı Kiralamanın En Kolay Yolu</h3>
                             <div class="row d-flex mb-4">
                                 <div class="col-md-4 d-flex align-self-stretch ftco-animate">
                                     <div class="services w-100 text-center">
                                         <div class="icon d-flex align-items-center justify-content-center"><span class="flaticon-route"></span></div>
                                         <div class="text w-100">
-                                            <h3 class="heading mb-2">Konum Seçin</h3>
+                                            <h3 class="heading mb-2">Aracını Seç</h3>
+                                            <p>Geniş filomuzdan ihtiyacına en uygun aracı beğen.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -95,7 +93,8 @@
                                     <div class="services w-100 text-center">
                                         <div class="icon d-flex align-items-center justify-content-center"><span class="flaticon-handshake"></span></div>
                                         <div class="text w-100">
-                                            <h3 class="heading mb-2">En İyi Teklifi Bulun</h3>
+                                            <h3 class="heading mb-2">Tarihleri Belirle</h3>
+                                            <p>Kiralama süreni seç ve anında fiyatı gör.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -103,12 +102,13 @@
                                     <div class="services w-100 text-center">
                                         <div class="icon d-flex align-items-center justify-content-center"><span class="flaticon-rent"></span></div>
                                         <div class="text w-100">
-                                            <h3 class="heading mb-2">Rezervasyonu Yapın</h3>
+                                            <h3 class="heading mb-2">Yola Çık</h3>
+                                            <p>Ofisimizden aracını teslim al ve keyfine bak.</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <p><a href="#" class="btn btn-primary py-3 px-4">Mükemmel Aracı Kirala</a></p>
+                            <p><a href="/Cars/Index" class="btn btn-primary py-3 px-4">Tüm Araçları Gör</a></p>
                         </div>
                     </div>
                 </div>
@@ -121,31 +121,35 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-md-12 heading-section text-center ftco-animate mb-5">
-                <span class="subheading">Tekliflerimiz</span>
-                <h2 class="mb-2">Öne Çıkan Araçlar</h2>
+                <span class="subheading">Fırsatlar</span>
+                <h2 class="mb-2">Vitrin Araçları</h2>
             </div>
         </div>
+
         <div class="row">
             <div class="col-md-12">
                 <div class="carousel-car owl-carousel">
-                    
-                    @if(Model != null && Model.Any())
+
+                    @if (featuredCars != null && featuredCars.Any())
                     {
-                        @foreach (var car in Model)
+                        @foreach (var car in featuredCars)
                         {
                             <div class="item">
                                 <div class="car-wrap rounded ftco-animate">
-                                    <div class="img rounded d-flex align-items-end" style="background-image: url('/images/vehicles/car/');">
+                                    <div class="img rounded d-flex align-items-end"
+                                         style="background-image: url('/@car.ImageUrl'); height: 250px;">
                                     </div>
+
                                     <div class="text">
-                                        <h2 class="mb-0"><a href="#">@car.Brand @car.Model</a></h2>
+                                        <h2 class="mb-0"><a href="/Cars/CarDetail/@car.Id">@car.Brand @car.Model</a></h2>
                                         <div class="d-flex mb-3">
                                             <span class="cat">@car.GearType / @car.FuelType</span>
                                             <p class="price ml-auto">@car.DailyRentalRate.ToString("C0") <span>/gün</span></p>
                                         </div>
+
                                         <p class="d-flex mb-0 d-block">
-                                            <a href="#" class="btn btn-primary py-2 mr-1">Kirala</a> 
-                                            <a href="#" class="btn btn-secondary py-2 ml-1">Detaylar</a>
+                                            <a href="/Cars/Rent/@car.Id" class="btn btn-primary py-2 mr-1">Kirala</a>
+                                            <a href="/Cars/CarDetail/@car.Id" class="btn btn-secondary py-2 ml-1">Detaylar</a>
                                         </p>
                                     </div>
                                 </div>
@@ -155,7 +159,7 @@
                     else
                     {
                         <div class="col-12 text-center">
-                            <p>Şu anda vitrinde gösterilecek uygun araç bulunmuyor.</p>
+                            <p>Şu anda vitrinde gösterilecek araç bulunmuyor.</p>
                         </div>
                     }
 
@@ -168,16 +172,15 @@
 <section class="ftco-section ftco-about">
     <div class="container">
         <div class="row no-gutters">
-            <div class="col-md-6 p-md-5 img img-2 d-flex justify-content-center align-items-center" style="background-image: url('/frontend/images/about.jpg');">
+            <div class="col-md-6 p-md-5 img img-2 d-flex justify-content-center align-items-center" style="background-image: url('/Frontend/images/about.jpg');">
             </div>
             <div class="col-md-6 wrap-about ftco-animate">
                 <div class="heading-section heading-section-white pl-md-5">
                     <span class="subheading">Hakkımızda</span>
-                    <h2 class="mb-4">Carbook'a Hoşgeldiniz</h2>
-
+                    <h2 class="mb-4">Güvenli Yolculuğun Adresi</h2>
                     <p>Müşteri memnuniyetini ön planda tutan hizmet anlayışımızla, yolculuklarınızı keyfe dönüştürüyoruz. Geniş araç filomuz ve profesyonel ekibimizle hizmetinizdeyiz.</p>
-                    <p>Güvenli, temiz ve bakımlı araçlarımızla, ister iş gezisi ister tatil olsun, her türlü ihtiyacınıza uygun çözümler sunuyoruz.</p>
-                    <p><a href="#" class="btn btn-primary py-3 px-4">Araç Ara</a></p>
+                    <p>Bakımlı, sigortalı ve konforlu araçlarımızla yola güvenle çıkın.</p>
+                    <p><a href="/Cars/Index" class="btn btn-primary py-3 px-4">Hemen Araç Bul</a></p>
                 </div>
             </div>
         </div>
@@ -189,7 +192,7 @@
         <div class="row justify-content-center mb-5">
             <div class="col-md-7 text-center heading-section ftco-animate">
                 <span class="subheading">Hizmetler</span>
-                <h2 class="mb-3">Son Hizmetlerimiz</h2>
+                <h2 class="mb-3">Size Özel Çözümler</h2>
             </div>
         </div>
         <div class="row">
@@ -197,8 +200,8 @@
                 <div class="services services-2 w-100 text-center">
                     <div class="icon d-flex align-items-center justify-content-center"><span class="flaticon-wedding-car"></span></div>
                     <div class="text w-100">
-                        <h3 class="heading mb-2">Düğün Arabası</h3>
-                        <p>Özel günleriniz için lüks seçenekler.</p>
+                        <h3 class="heading mb-2">Düğün & Özel Gün</h3>
+                        <p>En özel günleriniz için lüks ve konforlu seçenekler.</p>
                     </div>
                 </div>
             </div>
@@ -206,8 +209,8 @@
                 <div class="services services-2 w-100 text-center">
                     <div class="icon d-flex align-items-center justify-content-center"><span class="flaticon-transportation"></span></div>
                     <div class="text w-100">
-                        <h3 class="heading mb-2">Şehir İçi Transfer</h3>
-                        <p>Hızlı ve güvenli şehir içi ulaşım.</p>
+                        <h3 class="heading mb-2">Transfer Hizmeti</h3>
+                        <p>Şehir içi veya şehirler arası güvenli transfer.</p>
                     </div>
                 </div>
             </div>
@@ -216,7 +219,7 @@
                     <div class="icon d-flex align-items-center justify-content-center"><span class="flaticon-car"></span></div>
                     <div class="text w-100">
                         <h3 class="heading mb-2">Havalimanı Transfer</h3>
-                        <p>Uçuş öncesi ve sonrası konforlu transfer.</p>
+                        <p>Uçuş saatlerinize uygun dakik karşılama.</p>
                     </div>
                 </div>
             </div>
@@ -224,8 +227,8 @@
                 <div class="services services-2 w-100 text-center">
                     <div class="icon d-flex align-items-center justify-content-center"><span class="flaticon-transportation"></span></div>
                     <div class="text w-100">
-                        <h3 class="heading mb-2">Şehir Turları</h3>
-                        <p>Turistik gezileriniz için ideal araçlar.</p>
+                        <h3 class="heading mb-2">Filo Kiralama</h3>
+                        <p>Şirketler için uzun dönem avantajlı kiralama.</p>
                     </div>
                 </div>
             </div>
@@ -233,13 +236,14 @@
     </div>
 </section>
 
-<section class="ftco-section ftco-intro" style="background-image: url('/frontend/images/bg_3.jpg');">
+<section class="ftco-section ftco-intro" style="background-image: url('/Frontend/images/bg_2.jpg');">
     <div class="overlay"></div>
     <div class="container">
         <div class="row justify-content-end">
             <div class="col-md-6 heading-section heading-section-white ftco-animate">
-                <h2 class="mb-3">Bizimle Çalışmak İster misiniz?</h2>
-                <a href="#" class="btn btn-primary btn-lg">Sürücü Ol</a>
+                <h2 class="mb-3">Ayrıcalıklardan Yararlanın</h2>
+                <p>Üye olun, indirimli fiyatlardan ve kampanyalardan ilk siz haberdar olun. Kiralama işlemlerinizi hızlandırın.</p>
+                <a href="/Auth/Register" class="btn btn-primary btn-lg">Hemen Üye Ol</a>
             </div>
         </div>
     </div>
@@ -258,10 +262,10 @@
                 <div class="carousel-testimony owl-carousel ftco-owl">
                     <div class="item">
                         <div class="testimony-wrap rounded text-center py-4 pb-5">
-                            <div class="user-img mb-2" style="background-image: url('/frontend/images/person_1.jpg')">
+                            <div class="user-img mb-2" style="background-image: url('/Frontend/images/person_1.jpg')">
                             </div>
                             <div class="text pt-4">
-                                <p class="mb-4">Araçlar çok temiz ve bakımlıydı. Personel çok ilgiliydi, teşekkürler.</p>
+                                <p class="mb-4">Son derece profesyonel bir hizmet aldım. Araç tertemizdi.</p>
                                 <p class="name">Ahmet Yılmaz</p>
                                 <span class="position">Müşteri</span>
                             </div>
@@ -269,16 +273,16 @@
                     </div>
                     <div class="item">
                         <div class="testimony-wrap rounded text-center py-4 pb-5">
-                            <div class="user-img mb-2" style="background-image: url('/frontend/images/person_2.jpg')">
+                            <div class="user-img mb-2" style="background-image: url('/Frontend/images/person_2.jpg')">
                             </div>
                             <div class="text pt-4">
-                                <p class="mb-4">Fiyat performans olarak harika. Kesinlikle tekrar tercih edeceğim.</p>
+                                <p class="mb-4">İnternet sitesi çok kullanışlı, kiralama işlemi çok hızlıydı.</p>
                                 <p class="name">Ayşe Demir</p>
                                 <span class="position">Müşteri</span>
                             </div>
                         </div>
                     </div>
-                    </div>
+                </div>
             </div>
         </div>
     </div>

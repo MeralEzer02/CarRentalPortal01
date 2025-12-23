@@ -39,12 +39,21 @@
                 </ul>
                 @if (User.Identity.IsAuthenticated)
                 {
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="color: #01d28e; font-weight: bold;">
+                            <i class="ion-ios-person"></i> @User.Identity.Name
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <a class="dropdown-item" href="/Auth/Logout">Çıkış Yap</a>
+                        </div>
+                    </li>
                 }
                 else
                 {
                     <li class="nav-item"><a href="/Auth/Login" class="nav-link">Giriş Yap</a></li>
                     <li class="nav-item cta"><a href="/Auth/Register" class="nav-link"><span>Üye Ol</span></a></li>
                 }
+                </ul>
             </div>
         </div>
     </nav>
