@@ -248,13 +248,12 @@ namespace CarRentalPortal01.Controllers
 
 
         // ==========================================
-        //         STOK DURUMU / ENVANTER SAYFASI
+        //         STOK DURUMU / ENVANTER RAPORU
         // ==========================================
-        // --- STOK DURUMU / ENVANTER RAPORU ---
         [Authorize(Roles = "2")]
         public IActionResult Inventory()
         {
-            var allVehicles = _vehicleRepository.GetAll();
+            var allVehicles = _context.Vehicles.Include(v => v.Maintenances).ToList();
 
             var inventory = allVehicles
                 .GroupBy(v => new { v.Brand, v.Model, v.Color, v.FuelType, v.GearType })
@@ -270,7 +269,12 @@ namespace CarRentalPortal01.Controllers
 
                     AvailableCount = g.Count(v => v.IsAvailable),
 
-                    RentedCount = g.Count(v => !v.IsAvailable)
+                    RentedCount = g.Count(v => !v.IsAvailable &&
+                                               (v.Maintenances == null || !v.Maintenances.Any(m => !m.IsCompleted))),
+
+                    MaintenanceCount = g.Count(v => !v.IsAvailable &&
+                                                    v.Maintenances != null &&
+                                                    v.Maintenances.Any(m => !m.IsCompleted))
                 })
                 .OrderByDescending(x => x.TotalCount)
                 .ToList();
@@ -283,10 +287,11 @@ namespace CarRentalPortal01.Controllers
         //         BAKIM & SERVİS YÖNETİMİ
         // ==========================================
 
-        // --- 1. BAKIM LİSTESİ ---
+        // --- 1. BAKIM LİSTESİ (Gelişmiş Tarih Kontrolü) ---
         [Authorize(Roles = "2")]
         public IActionResult MaintenanceList()
         {
+            // A) SÜRESİ BİTENLER (Geçmişe Dönük Temizlik)
             var expiredMaintenances = _context.VehicleMaintenances
                 .Include(m => m.Vehicle)
                 .Where(m => !m.IsCompleted && m.EndDate != null && m.EndDate < DateTime.Now)
@@ -294,36 +299,62 @@ namespace CarRentalPortal01.Controllers
 
             if (expiredMaintenances.Any())
             {
-                int count = 0;
                 foreach (var item in expiredMaintenances)
                 {
                     item.IsCompleted = true;
-
                     if (item.Vehicle != null)
                     {
                         item.Vehicle.IsAvailable = true;
                         _context.Vehicles.Update(item.Vehicle);
                     }
-
                     LogToDb("Otomatik Bakım Bitişi", $"{item.Vehicle?.LicensePlate} süresi dolduğu için sistem tarafından servisten çıkarıldı.");
-                    count++;
                 }
-
-                _context.SaveChanges();
-
-                _toastNotification.AddInfoToastMessage($"{count} aracın bakımı süresi dolduğu için otomatik tamamlandı.");
             }
 
-            // --- B) NORMAL LİSTELEME ---
+            // B) GELECEK TARİHLİ BAKIMLAR (DÜZELTME: Henüz başlamamışsa araç MÜSAİT olmalı)
+            var futureMaintenances = _context.VehicleMaintenances
+                .Include(m => m.Vehicle)
+                .Where(m => !m.IsCompleted && m.StartDate > DateTime.Now)
+                .ToList();
+
+            foreach (var item in futureMaintenances)
+            {
+                // Eğer bakım tarihi gelecekteyse ama araç 'Müsait Değil' (False) ise düzeltiyoruz.
+                if (item.Vehicle != null && !item.Vehicle.IsAvailable)
+                {
+                    item.Vehicle.IsAvailable = true;
+                    _context.Vehicles.Update(item.Vehicle);
+                }
+            }
+
+            // C) ZAMANI GELMİŞ BAKIMLAR (Otomatik Başlatma)
+            var activeMaintenances = _context.VehicleMaintenances
+                .Include(m => m.Vehicle)
+                .Where(m => !m.IsCompleted && m.StartDate <= DateTime.Now)
+                .ToList();
+
+            foreach (var item in activeMaintenances)
+            {
+                // Eğer bakım tarihi geldiyse ama araç hala 'Müsait' (True) ise servise alıyoruz.
+                if (item.Vehicle != null && item.Vehicle.IsAvailable)
+                {
+                    item.Vehicle.IsAvailable = false;
+                    _context.Vehicles.Update(item.Vehicle);
+                }
+            }
+
+            // Tüm değişiklikleri tek seferde kaydet
+            _context.SaveChanges();
+
+            // --- LİSTELEME ---
             var maintenances = _context.VehicleMaintenances
                 .Include(m => m.Vehicle)
-                .OrderBy(m => m.IsCompleted)       
+                .OrderBy(m => m.IsCompleted)
                 .ThenByDescending(m => m.StartDate)
                 .ToList();
 
             return View(maintenances);
         }
-
         // --- 2. BAKIM EKLEME / DÜZENLEME ---
         [HttpGet]
         [Authorize(Roles = "2")]
@@ -363,21 +394,31 @@ namespace CarRentalPortal01.Controllers
         {
             ModelState.Remove("Vehicle");
 
+            if (maintenance.EndDate.HasValue && maintenance.EndDate < maintenance.StartDate)
+            {
+                ModelState.AddModelError("EndDate", "Bitiş tarihi, Başlangıç tarihinden önce olamaz!");
+                _toastNotification.AddErrorToastMessage("Tarihleri kontrol ediniz.");
+            }
+
             if (ModelState.IsValid)
             {
                 var vehicle = _context.Vehicles.Find(maintenance.VehicleId);
 
+                // --- YENİ KAYIT ---
                 if (maintenance.Id == 0)
                 {
-                    if (vehicle != null)
+                    if (vehicle != null && maintenance.StartDate <= DateTime.Now)
                     {
                         vehicle.IsAvailable = false;
                         _context.Vehicles.Update(vehicle);
                     }
+
                     _context.VehicleMaintenances.Add(maintenance);
-                    LogToDb("Bakım Başlangıcı", $"{vehicle?.LicensePlate} servise alındı. Tür: {maintenance.MaintenanceType}");
+
+                    LogToDb("Bakım Başlangıcı", $"{vehicle?.LicensePlate} için bakım kaydı oluşturuldu. Tür: {maintenance.MaintenanceType}");
                     _toastNotification.AddSuccessToastMessage("Bakım kaydı oluşturuldu.");
                 }
+                // --- GÜNCELLEME ---
                 else
                 {
                     _context.VehicleMaintenances.Update(maintenance);
@@ -393,40 +434,13 @@ namespace CarRentalPortal01.Controllers
                 }
 
                 _context.SaveChanges();
+
                 return RedirectToAction("MaintenanceList");
             }
 
             return RedirectToAction("MaintenanceList");
         }
-
-        // --- DURUM DEĞİŞTİRME ---
-        [HttpPost]
-        [Authorize(Roles = "2")]
-        public IActionResult ToggleMaintenanceStatus(int id)
-        {
-            var maintenance = _context.VehicleMaintenances.Include(m => m.Vehicle).FirstOrDefault(m => m.Id == id);
-            if (maintenance == null) return Json(new { success = false, message = "Kayıt bulunamadı." });
-
-            maintenance.IsCompleted = !maintenance.IsCompleted;
-
-            if (maintenance.IsCompleted) maintenance.EndDate = DateTime.Now;
-            else maintenance.EndDate = null;
-
-            if (maintenance.Vehicle != null)
-            {
-                maintenance.Vehicle.IsAvailable = maintenance.IsCompleted;
-                _context.Vehicles.Update(maintenance.Vehicle);
-            }
-
-            _context.VehicleMaintenances.Update(maintenance);
-            _context.SaveChanges();
-
-            string durumMesaji = maintenance.IsCompleted ? "Tamamlandı" : "Tekrar Servise Alındı";
-            LogToDb("Bakım Durum Değişikliği", $"{maintenance.Vehicle?.LicensePlate} bakım durumu değişti: {durumMesaji}");
-
-            return Json(new { success = true, isCompleted = maintenance.IsCompleted });
-        }
-
+        
         // --- 4. BAKIMI BİTİRME (SERVİSTEN ÇIKARMA) ---
         [HttpPost]
         [Authorize(Roles = "2")]
